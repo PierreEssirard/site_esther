@@ -20,7 +20,6 @@
             overflow-x: hidden;
         }
 
-        /* Hero Section avec modèle 3D */
         .hero-section {
             position: relative;
             width: 100%;
@@ -104,13 +103,8 @@
             animation: lineExpand 1.5s cubic-bezier(0.16, 1, 0.3, 1) forwards 1.2s;
         }
 
-        .hero-line:nth-child(2) {
-            animation-delay: 1.4s;
-        }
-
-        .hero-line:nth-child(3) {
-            animation-delay: 1.6s;
-        }
+        .hero-line:nth-child(2) { animation-delay: 1.4s; }
+        .hero-line:nth-child(3) { animation-delay: 1.6s; }
 
         @keyframes slideInRight {
             to {
@@ -120,9 +114,7 @@
         }
 
         @keyframes lineExpand {
-            to {
-                width: 100%;
-            }
+            to { width: 100%; }
         }
 
         .scroll-indicator {
@@ -153,69 +145,6 @@
             50% { transform: translateY(20px); opacity: 0.3; }
         }
 
-        /* Floating Shapes Background */
-        .floating-shapes {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 60%;
-            height: 100%;
-            pointer-events: none;
-            z-index: 5;
-        }
-
-        .shape {
-            position: absolute;
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            animation: float 20s ease-in-out infinite;
-        }
-
-        .shape-1 {
-            width: 200px;
-            height: 200px;
-            top: 10%;
-            left: 10%;
-            border-radius: 50%;
-            border-color: rgba(255, 107, 107, 0.2);
-            animation-delay: 0s;
-        }
-
-        .shape-2 {
-            width: 150px;
-            height: 150px;
-            top: 60%;
-            left: 5%;
-            transform: rotate(45deg);
-            border-color: rgba(132, 129, 255, 0.2);
-            animation-delay: 2s;
-        }
-
-        .shape-3 {
-            width: 100px;
-            height: 100px;
-            top: 30%;
-            left: 40%;
-            border-radius: 50%;
-            border-color: rgba(78, 205, 196, 0.2);
-            animation-delay: 4s;
-        }
-
-        @keyframes float {
-            0%, 100% {
-                transform: translate(0, 0) rotate(0deg);
-            }
-            25% {
-                transform: translate(30px, -30px) rotate(90deg);
-            }
-            50% {
-                transform: translate(-20px, 40px) rotate(180deg);
-            }
-            75% {
-                transform: translate(40px, 20px) rotate(270deg);
-            }
-        }
-
-        /* Header */
         header {
             position: fixed;
             top: 0;
@@ -292,7 +221,6 @@
             color: #fff;
         }
 
-        /* Login Modal */
         .login-modal {
             display: none;
             position: fixed;
@@ -306,9 +234,7 @@
             justify-content: center;
         }
 
-        .login-modal.active {
-            display: flex;
-        }
+        .login-modal.active { display: flex; }
 
         .login-box {
             background: #1a1a1a;
@@ -357,9 +283,7 @@
             transition: all 0.3s ease;
         }
 
-        .login-box button:hover {
-            background: #ddd;
-        }
+        .login-box button:hover { background: #ddd; }
 
         .login-error {
             color: #ff6b6b;
@@ -369,9 +293,7 @@
             transition: opacity 0.3s ease;
         }
 
-        .login-error.show {
-            opacity: 1;
-        }
+        .login-error.show { opacity: 1; }
 
         .close-login {
             position: absolute;
@@ -383,7 +305,6 @@
             font-weight: 300;
         }
 
-        /* Upload Zone */
         .upload-container {
             position: fixed;
             top: 80px;
@@ -392,9 +313,7 @@
             display: none;
         }
 
-        .upload-container.logged-in {
-            display: block;
-        }
+        .upload-container.logged-in { display: block; }
 
         .upload-btn {
             background: #1a1a1a;
@@ -408,9 +327,7 @@
             font-weight: 300;
         }
 
-        .upload-btn:hover {
-            background: #333;
-        }
+        .upload-btn:hover { background: #333; }
 
         .upload-box {
             position: absolute;
@@ -458,13 +375,10 @@
             background: #f0f0f0;
         }
 
-        input[type="file"] {
-            display: none;
-        }
+        input[type="file"] { display: none; }
 
-        /* Projects Section */
         .projects-section {
-            background: #fafafa;
+            background: #eac0e1;
             min-height: 100vh;
             padding-top: 100px;
         }
@@ -497,7 +411,6 @@
             font-weight: 300;
         }
 
-        /* Gallery */
         .gallery {
             max-width: 1600px;
             margin: 0 auto;
@@ -577,15 +490,9 @@
             justify-content: center;
         }
 
-        .project:hover .delete-btn {
-            opacity: 1;
-        }
+        .project:hover .delete-btn { opacity: 1; }
+        .delete-btn:hover { background: rgba(0, 0, 0, 0.95); }
 
-        .delete-btn:hover {
-            background: rgba(0, 0, 0, 0.95);
-        }
-
-        /* Modal */
         .modal {
             display: none;
             position: fixed;
@@ -629,9 +536,7 @@
             transition: transform 0.3s ease;
         }
 
-        .close-modal:hover {
-            transform: rotate(90deg);
-        }
+        .close-modal:hover { transform: rotate(90deg); }
 
         .empty-state {
             grid-column: 1 / -1;
@@ -642,57 +547,28 @@
             font-weight: 300;
         }
 
-        /* Animations */
         @keyframes fadeIn {
-            to {
-                opacity: 1;
-            }
+            to { opacity: 1; }
         }
 
-        /* Responsive */
         @media (max-width: 1024px) {
-            .hero-section {
-                padding: 0 2rem;
-            }
-
-            #canvas3d {
-                width: 50%;
-            }
-
+            .hero-section { padding: 0 2rem; }
+            #canvas3d { width: 50%; }
             .hero-content {
                 width: 50%;
                 padding-left: 2rem;
             }
-
-            .hero-content h1 {
-                font-size: 4rem;
-            }
-
-            .hero-content .name-first {
-                font-size: 3.5rem;
-            }
-
-            .hero-content .name-last {
-                font-size: 5rem;
-            }
-
+            .hero-content h1 { font-size: 4rem; }
+            .hero-content .name-first { font-size: 3.5rem; }
+            .hero-content .name-last { font-size: 5rem; }
             .gallery {
                 grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
                 gap: 1.5rem;
                 padding: 2rem 1.5rem 4rem;
             }
-            
-            header {
-                padding: 1.5rem 1.5rem;
-            }
-            
-            .projects-intro {
-                padding: 2rem 1.5rem;
-            }
-            
-            .upload-container {
-                right: 1.5rem;
-            }
+            header { padding: 1.5rem 1.5rem; }
+            .projects-intro { padding: 2rem 1.5rem; }
+            .upload-container { right: 1.5rem; }
         }
 
         @media (max-width: 768px) {
@@ -700,12 +576,10 @@
                 flex-direction: column;
                 padding: 0;
             }
-
             #canvas3d {
                 width: 100%;
                 height: 50%;
             }
-
             .hero-content {
                 width: 100%;
                 height: 50%;
@@ -714,43 +588,17 @@
                 flex-direction: column;
                 justify-content: center;
             }
-
-            .hero-content h1 {
-                font-size: 3rem;
-            }
-
-            .hero-content .name-first {
-                font-size: 2.5rem;
-            }
-
-            .hero-content .name-last {
-                font-size: 4rem;
-            }
-
-            .scroll-indicator {
-                right: 2rem;
-            }
-
-            .gallery {
-                grid-template-columns: 1fr;
-            }
-            
-            .header-right {
-                gap: 1rem;
-            }
-            
-            .school {
-                display: none;
-            }
-
-            .floating-shapes {
-                width: 100%;
-            }
+            .hero-content h1 { font-size: 3rem; }
+            .hero-content .name-first { font-size: 2.5rem; }
+            .hero-content .name-last { font-size: 4rem; }
+            .scroll-indicator { right: 2rem; }
+            .gallery { grid-template-columns: 1fr; }
+            .header-right { gap: 1rem; }
+            .school { display: none; }
         }
     </style>
 </head>
 <body>
-    <!-- Header -->
     <header id="header">
         <div class="logo">EM</div>
         <div class="header-right">
@@ -759,7 +607,6 @@
         </div>
     </header>
 
-    <!-- Login Modal -->
     <div class="login-modal" id="loginModal">
         <span class="close-login" onclick="closeLogin()">×</span>
         <div class="login-box">
@@ -770,7 +617,6 @@
         </div>
     </div>
 
-    <!-- Upload Button -->
     <div class="upload-container" id="uploadContainer">
         <button class="upload-btn" onclick="toggleUpload()">+ Ajouter</button>
         <div class="upload-box" id="uploadBox">
@@ -782,13 +628,7 @@
         </div>
     </div>
 
-    <!-- Hero Section avec modèle 3D -->
     <section class="hero-section">
-        <div class="floating-shapes">
-            <div class="shape shape-1"></div>
-            <div class="shape shape-2"></div>
-            <div class="shape shape-3"></div>
-        </div>
         <canvas id="canvas3d"></canvas>
         <div class="hero-content">
             <h1>
@@ -805,33 +645,26 @@
         <div class="scroll-indicator">SCROLL</div>
     </section>
 
-    <!-- Projects Section -->
     <section class="projects-section">
         <div class="projects-intro" id="projectsIntro">
             <h2>Projets</h2>
             <p>Travaux réalisés à l'École Estienne, Paris</p>
         </div>
-
         <div class="gallery" id="gallery">
-            <div class="empty-state">
-                Aucun projet pour le moment
-            </div>
+            <div class="empty-state">Aucun projet pour le moment</div>
         </div>
     </section>
 
-    <!-- Modal -->
     <div class="modal" id="modal" onclick="closeModalOnBackground(event)">
         <span class="close-modal" onclick="closeModal()">×</span>
         <div class="modal-content" id="modalContent"></div>
     </div>
 
     <script>
-        // Variables globales
         let projects = [];
         let uploadBoxOpen = false;
         let isLoggedIn = false;
 
-        // ===== Three.js Scene Setup =====
         const canvas = document.getElementById('canvas3d');
         const scene = new THREE.Scene();
         const camera = new THREE.PerspectiveCamera(75, (window.innerWidth * 0.6) / window.innerHeight, 0.1, 1000);
@@ -840,147 +673,190 @@
         renderer.setSize(window.innerWidth * 0.6, window.innerHeight);
         renderer.setClearColor(0x000000, 1);
 
-        // Lumières
-        const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+        const ambientLight = new THREE.AmbientLight(0xf0c4df, 0.3);
         scene.add(ambientLight);
 
-        const light1 = new THREE.DirectionalLight(0xff6b6b, 1);
+        const light1 = new THREE.DirectionalLight(0xf0c4df, 3.0);
         light1.position.set(5, 5, 5);
         scene.add(light1);
 
-        const light2 = new THREE.DirectionalLight(0x4ecdcc, 0.8);
+        const light2 = new THREE.DirectionalLight(0xf0c4df, 2.8);
         light2.position.set(-5, 3, -5);
         scene.add(light2);
 
-        const light3 = new THREE.DirectionalLight(0x8481ff, 0.6);
-        light3.position.set(0, -5, 0);
+        const light3 = new THREE.DirectionalLight(0xf0c4df, 2.5);
+        light3.position.set(0, -5, 3);
         scene.add(light3);
-
-        // Créer une scène 3D pseudo-3D avec des plans illustrés
-        const model = new THREE.Group();
         
-        // Plan 1 - Bâtiments d'arrière-plan (le plus loin)
-        const planeGeo1 = new THREE.PlaneGeometry(4, 3);
-        const planeMat1 = new THREE.MeshBasicMaterial({ 
-            color: 0x6b8fb3,
+        const light4 = new THREE.PointLight(0xf0c4df, 2.0);
+        light4.position.set(0, 0, 5);
+        scene.add(light4);
+
+        const model = new THREE.Group();
+        const radius = 2.5;
+        const circlePoints = [];
+        const segments = 60;
+        
+        for (let i = 0; i <= segments; i++) {
+            const angle = (i / segments) * Math.PI * 2;
+            circlePoints.push(new THREE.Vector3(
+                Math.cos(angle) * radius,
+                Math.sin(angle) * radius,
+                0
+            ));
+        }
+        
+        const circleCurve = new THREE.CatmullRomCurve3(circlePoints, true);
+        
+        const railGeo = new THREE.TubeGeometry(circleCurve, 120, 0.08, 16, true);
+        const railMat = new THREE.MeshBasicMaterial({ 
+            color: 0xf0c4df
+        });
+        const rail = new THREE.Mesh(railGeo, railMat);
+        model.add(rail);
+        
+        const railInnerGeo = new THREE.TubeGeometry(circleCurve, 120, 0.04, 12, true);
+        const railInnerMat = new THREE.MeshBasicMaterial({ 
+            color: 0xf0c4df,
             transparent: true,
             opacity: 0.7
         });
-        const buildings1 = new THREE.Mesh(planeGeo1, planeMat1);
-        buildings1.position.z = -2;
+        const railInner = new THREE.Mesh(railInnerGeo, railInnerMat);
+        railInner.scale.set(0.95, 0.95, 1);
+        model.add(railInner);
         
-        // Ajouter des rectangles pour les fenêtres
-        const windowGroup1 = new THREE.Group();
-        for (let i = 0; i < 40; i++) {
-            const windowGeo = new THREE.PlaneGeometry(0.15, 0.2);
-            const windowMat = new THREE.MeshBasicMaterial({ 
-                color: 0x4a6b8a,
-                transparent: true,
-                opacity: 0.6
-            });
-            const window = new THREE.Mesh(windowGeo, windowMat);
-            window.position.x = (Math.random() - 0.5) * 3;
-            window.position.y = (Math.random() - 0.3) * 2.5;
-            windowGroup1.add(window);
-        }
-        windowGroup1.position.z = -1.95;
-        model.add(buildings1, windowGroup1);
-        
-        // Plan 2 - Route/metro courbe (milieu)
-        const curvePoints = [];
-        for (let i = 0; i <= 20; i++) {
-            const t = i / 20;
-            curvePoints.push(new THREE.Vector3(
-                (t - 0.5) * 4,
-                Math.sin(t * Math.PI) * 0.3 - 0.8,
-                -1
-            ));
-        }
-        const curve = new THREE.CatmullRomCurve3(curvePoints);
-        const tubeGeo = new THREE.TubeGeometry(curve, 20, 0.15, 8, false);
-        const tubeMat = new THREE.MeshPhongMaterial({ 
-            color: 0xffd700,
-            emissive: 0xffaa00,
-            emissiveIntensity: 0.3
-        });
-        const metro = new THREE.Mesh(tubeGeo, tubeMat);
-        model.add(metro);
-        
-        // Wagons de métro
         const wagonGroup = new THREE.Group();
-        for (let i = 0; i < 6; i++) {
-            const wagonGeo = new THREE.BoxGeometry(0.4, 0.25, 0.3);
-            const wagonMat = new THREE.MeshPhongMaterial({ 
-                color: i % 2 === 0 ? 0xe8e8e8 : 0xd0d0ff
+        const numWagons = 8;
+        
+        for (let i = 0; i < numWagons; i++) {
+            const wagonContainer = new THREE.Group();
+            
+            const wagonGeo = new THREE.BoxGeometry(0.5, 0.35, 0.35);
+            const wagonMat = new THREE.MeshBasicMaterial({
+                color: 0xa8d0ff
             });
             const wagon = new THREE.Mesh(wagonGeo, wagonMat);
-            const t = (i / 6) * 0.8 + 0.1;
-            const pos = curve.getPoint(t);
-            wagon.position.copy(pos);
-            wagon.position.z = -0.9;
+            wagonContainer.add(wagon);
             
-            // Fenêtres du wagon
-            const windowGeo2 = new THREE.PlaneGeometry(0.08, 0.08);
-            const windowMat2 = new THREE.MeshBasicMaterial({ color: 0x87ceeb });
+            const stripe1Geo = new THREE.BoxGeometry(0.52, 0.08, 0.36);
+            const stripe1Mat = new THREE.MeshBasicMaterial({ 
+                color: i % 3 === 0 ? 0xa8c9e8 : i % 3 === 1 ? 0xb8d4f0 : 0xc8def5,
+                transparent: true,
+                opacity: 0.95
+            });
+            const stripe1 = new THREE.Mesh(stripe1Geo, stripe1Mat);
+            stripe1.position.y = 0.1;
+            wagonContainer.add(stripe1);
+            
+            const windowGeo = new THREE.PlaneGeometry(0.12, 0.12);
+            const windowMat = new THREE.MeshBasicMaterial({ 
+                color: 0xfff1a8,
+                transparent: true,
+                opacity: 0.75
+            });
+            
             for (let j = 0; j < 3; j++) {
-                const win = new THREE.Mesh(windowGeo2, windowMat2);
-                win.position.x = (j - 1) * 0.1;
-                win.position.z = 0.16;
-                wagon.add(win);
+                const win = new THREE.Mesh(windowGeo, windowMat);
+                win.position.x = (j - 1) * 0.15;
+                win.position.z = 0.181;
+                wagonContainer.add(win);
+                
+                const winBack = win.clone();
+                winBack.position.z = -0.181;
+                winBack.rotation.y = Math.PI;
+                wagonContainer.add(winBack);
             }
             
-            wagonGroup.add(wagon);
+            const roofGeo = new THREE.BoxGeometry(0.52, 0.03, 0.36);
+            const roofMat = new THREE.MeshBasicMaterial({ 
+                color: 0xfff1a8
+            });
+            const roof = new THREE.Mesh(roofGeo, roofMat);
+            roof.position.y = 0.19;
+            wagonContainer.add(roof);
+
+            const wheelGeo = new THREE.CylinderGeometry(0.06, 0.06, 0.04, 12);
+            const wheelMat = new THREE.MeshBasicMaterial({ color: 0xfff1a8 });
+            for (let w = 0; w < 4; w++) {
+                const wheel = new THREE.Mesh(wheelGeo, wheelMat);
+                wheel.rotation.x = Math.PI / 2;
+                wheel.position.set(w < 2 ? -0.16 : 0.16, -0.18, w % 2 === 0 ? 0.12 : -0.12);
+                wagonContainer.add(wheel);
+            }
+
+            wagonContainer.userData.offset = i / numWagons;
+            wagonGroup.add(wagonContainer);
         }
         model.add(wagonGroup);
-        
-        // Plan 3 - Café et terrasse (avant-plan)
-        const cafeGeo = new THREE.BoxGeometry(0.8, 0.6, 0.3);
-        const cafeMat = new THREE.MeshPhongMaterial({ color: 0xe8e8e8 });
-        const cafe = new THREE.Mesh(cafeGeo, cafeMat);
-        cafe.position.set(-2.2, -0.9, 0.5);
-        
-        // Auvent du café
-        const awningGeo = new THREE.BoxGeometry(0.9, 0.1, 0.4);
-        const awningMat = new THREE.MeshPhongMaterial({ 
-            color: 0x0077aa,
-            emissive: 0x004477
-        });
-        const awning = new THREE.Mesh(awningGeo, awningMat);
-        awning.position.set(-2.2, -0.5, 0.6);
-        
-        // Tables et chaises
-        const tableGroup = new THREE.Group();
-        for (let i = 0; i < 3; i++) {
-            const tableGeo = new THREE.CylinderGeometry(0.1, 0.1, 0.02);
-            const tableMat = new THREE.MeshPhongMaterial({ color: 0xffffff });
-            const table = new THREE.Mesh(tableGeo, tableMat);
-            table.position.set(-2 + i * 0.25, -1, 0.3);
-            tableGroup.add(table);
-        }
-        model.add(tableGroup);
-
-        // Ajouter le modèle complet à la scène
         scene.add(model);
 
-        // Position de la caméra
-        camera.position.set(0, 0, 6);
+        camera.position.set(0, 0, 7);
 
-        // Redimensionnement adaptatif
+        let trainProgress = 0;
+        const trainSpeedSlow = 0.0008;
+        const trainSpeedFast = 0.001;
+        let currentSpeed = trainSpeedSlow;
+        let isHovering = false;
+
+        canvas.addEventListener('mouseenter', () => {
+            isHovering = true;
+        });
+
+        canvas.addEventListener('mouseleave', () => {
+            isHovering = false;
+        });
+
         function onWindowResize() {
-            camera.aspect = (window.innerWidth * 0.6) / window.innerHeight;
+            const width = window.innerWidth * 0.6;
+            const height = window.innerHeight;
+            camera.aspect = width / height;
             camera.updateProjectionMatrix();
-            renderer.setSize(window.innerWidth * 0.6, window.innerHeight);
+            renderer.setSize(width, height);
         }
         window.addEventListener('resize', onWindowResize);
 
-        // Boucle d'animation
         function animate() {
             requestAnimationFrame(animate);
-            // légère rotation pour donner du mouvement
-            model.rotation.y += 0.0015;
+            
+            if (isHovering) {
+                currentSpeed += (trainSpeedFast - currentSpeed) * 0.05;
+            } else {
+                currentSpeed += (trainSpeedSlow - currentSpeed) * 0.05;
+            }
+            
+            trainProgress = (trainProgress + currentSpeed) % 1;
+
+            wagonGroup.children.forEach(wagon => {
+                const t = (trainProgress + wagon.userData.offset) % 1;
+                const pos = circleCurve.getPoint(t);
+                wagon.position.copy(pos);
+                const tangent = circleCurve.getTangent(t);
+                wagon.rotation.z = Math.atan2(tangent.y, tangent.x);
+            });
+
+            model.rotation.y = Math.sin(Date.now() * 0.0005) * 0.15;
+            model.rotation.x = Math.cos(Date.now() * 0.0003) * 0.08;
+
             renderer.render(scene, camera);
         }
         animate();
+
+        function openLogin() { document.getElementById('loginModal').classList.add('active'); }
+        function closeLogin() { document.getElementById('loginModal').classList.remove('active'); }
+        function checkPassword() { }
+        function toggleUpload() { }
+        function closeModal() { document.getElementById('modal').classList.remove('active'); }
+        function closeModalOnBackground(e) { if(e.target.id === 'modal') closeModal(); }
+
+        window.addEventListener('scroll', () => {
+            const header = document.getElementById('header');
+            if(window.scrollY > 50) header.classList.add('scrolled');
+            else header.classList.remove('scrolled');
+
+            const intro = document.getElementById('projectsIntro');
+            const rect = intro.getBoundingClientRect();
+            if(rect.top < window.innerHeight * 0.8) intro.classList.add('visible');
+        });
     </script>
 </body>
 </html>
