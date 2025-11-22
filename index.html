@@ -732,6 +732,28 @@
                 model.scale.set(1, 1, 1);
             }
         }
+        // If the page is served from a remote host (GitHub Pages) the script
+        // can run before styles/layout applied and `canvas.getBoundingClientRect()`
+        // returns a 0 size. Ensure renderer sizing & camera adjustment run after
+        // the page has loaded and the canvas has a non-zero size.
+        function ensureRendererReady(retries = 0) {
+            const rect = canvas.getBoundingClientRect();
+            if ((rect.width < 1 || rect.height < 1) && retries < 20) {
+                // retry after a short delay
+                setTimeout(() => ensureRendererReady(retries + 1), 150);
+                return;
+            }
+            setRendererToCanvasSize();
+            // Only adjust camera if `model` exists to avoid ReferenceError
+            if (typeof model !== 'undefined' && model) adjustCameraForScreen();
+            console.log('INIT: renderer ready, size=', rect.width, rect.height);
+        }
+
+        // Run the ensure flow after full load (covers static hosting differences)
+        window.addEventListener('load', () => ensureRendererReady());
+        // Also try at DOMContentLoaded as a fallback
+        document.addEventListener('DOMContentLoaded', () => ensureRendererReady());
+
         renderer.setClearColor(0x000000, 1);
 
         const ambientLight = new THREE.AmbientLight(0xf0c4df, 0.3);
