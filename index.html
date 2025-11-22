@@ -214,9 +214,44 @@
         let haussmannBuilding = null;
         let wasInFastMode = false;
         let lapStarted = false;
+        let touchTimer = null; // Pour le suivi de la durée du contact pour l'explosion
+        let isTouching = false; // Nouvel état pour le mobile
 
-        canvas.addEventListener('mouseenter', () => { isHovering = true; });
-        canvas.addEventListener('mouseleave', () => { isHovering = false; });
+        // --- GESTION DES ÉVÉNEMENTS TACTILES (Mobile) et SOURIS (Desktop) ---
+        
+        // Fonction pour démarrer l'accélération
+        function startFastMode(event) {
+            event.preventDefault(); // Empêche le défilement et le zoom par défaut
+            if (hasExploded) return;
+            isHovering = true;
+            isTouching = true; // Définir l'état mobile
+        }
+
+        // Fonction pour arrêter l'accélération
+        function stopFastMode(event) {
+            // event.preventDefault() est souvent inutile sur touchend/mouseup/mouseleave si déjà géré par touchstart/mousedown/mouseenter
+            if (hasExploded) return;
+            isHovering = false;
+            isTouching = false; // Définir l'état mobile
+            // Réinitialiser le compteur de tours dès que le contact est relâché/annulé
+            // Cela empêche de faire un petit tap rapide pour accumuler l'explosion
+            if (currentSpeed < (trainSpeedSlow + trainSpeedFast) / 2) {
+                 fastLapCount = 0;
+                 lapStarted = false;
+                 // console.log("Compteur de tours réinitialisé (contact perdu).");
+            }
+        }
+
+        // Événements SOURIS (pour Desktop)
+        canvas.addEventListener('mouseenter', startFastMode); // Utilise startFastMode pour l'accélération
+        canvas.addEventListener('mouseleave', stopFastMode);  // Utilise stopFastMode pour le ralentissement
+
+        // Événements TACTILES (pour Mobile)
+        canvas.addEventListener('touchstart', startFastMode);
+        canvas.addEventListener('touchend', stopFastMode);
+        canvas.addEventListener('touchcancel', stopFastMode); // Gère les interruptions (appel, notification, etc.)
+
+        // --- FIN GESTION DES ÉVÉNEMENTS ---
 
         function createHaussmannBuilding() {
             const sculpture = new THREE.Group();
@@ -345,14 +380,18 @@
 
         function explodeTrain() {
             hasExploded = true;
+            // Assurez-vous d'arrêter l'accélération au moment de l'explosion
+            isHovering = false; 
+            isTouching = false; 
+            
             wagonGroup.children.forEach(wagon => {
                 const pos = wagon.position.clone();
                 for (let i = 0; i < 60; i++) {
                     // Vélocité MASSIVE pour atteindre absolument TOUS les coins
                     const velocity = new THREE.Vector3(
-                        (Math.random() - 0.5) * 8,
-                        (Math.random() - 0.5) * 8,
-                        (Math.random() - 0.5) * 8
+                        (Math.random() - 0.5) * 4,
+                        (Math.random() - 0.5) * 4,
+                        (Math.random() - 0.5) * 4
                     );
                     const particle = createParticle(pos, velocity);
                     particles.push(particle);
@@ -403,6 +442,7 @@
             requestAnimationFrame(animate);
             
             if (!hasExploded) {
+                // Utilise `isHovering` (qui est mis à jour par les événements souris ET tactiles)
                 if (isHovering) {
                     currentSpeed += (trainSpeedFast - currentSpeed) * 0.05;
                 } else {
@@ -421,15 +461,26 @@
                         lapStarted = true;
                     }
                     if (oldProgress > 0.9 && trainProgress < 0.1) {
-                        fastLapCount++;
-                        console.log('🏁 Tour rapide complété:', fastLapCount, '/ 10');
-                        if (fastLapCount >= 1.5) {
+                        fastLapCount += 1; // Incrément de 1
+                        // console.log('🏁 Tour rapide complété:', fastLapCount, '...');
+                        
+                        // Condition d'explosion (1.5 tours)
+                        if (fastLapCount >= 1.5) { 
                             console.log('💥 EXPLOSION !');
                             explodeTrain();
                         }
                     }
                 } else {
-                    lapStarted = false;
+                    // Si on ralentit trop (on est plus en mode rapide), on réinitialise le compteur
+                    if (lapStarted) {
+                        // Pour gérer l'accumulation: on retire une petite portion pour forcer l'explosion à être en une seule fois
+                        if (fastLapCount >= 0.5) fastLapCount -= 0.05; 
+                        if (fastLapCount < 0) {
+                            fastLapCount = 0;
+                            lapStarted = false;
+                            // console.log("Réinitialisation forcée après ralentissement.");
+                        }
+                    }
                 }
 
                 wagonGroup.children.forEach(wagon => {
