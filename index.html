@@ -38,6 +38,7 @@
             top: 0;
             width: 60%;
             height: 100%;
+            display: block;
         }
 
         .hero-content {
@@ -73,6 +74,16 @@
             .hero-content .name-first { font-size: 2.4rem; }
             .hero-content .name-last { font-size: 3.2rem; }
             .hero-content p { font-size: 0.95rem; }
+        }
+
+        @media (max-width: 600px) {
+            .hero-section { padding: 1rem; }
+            #canvas3d { height: 40vh; }
+            .hero-content h1 { font-size: 2.2rem; }
+            .hero-content .name-first { font-size: 1.6rem; }
+            .hero-content .name-last { font-size: 2.2rem; }
+            .hero-content p { font-size: 0.9rem; letter-spacing: 1px; }
+            .hero-content { padding-left: 0.5rem; }
         }
 
         .hero-content h1 {
@@ -707,6 +718,21 @@
             camera.updateProjectionMatrix();
         }
         setRendererToCanvasSize();
+        // adjust camera / model scale depending on screen size for better mobile framing
+        function adjustCameraForScreen() {
+            const w = window.innerWidth;
+            if (w <= 480) {
+                camera.position.set(0, 0, 5);
+                model.scale.set(0.85, 0.85, 0.85);
+            } else if (w <= 900) {
+                camera.position.set(0, 0, 5.5);
+                model.scale.set(0.95, 0.95, 0.95);
+            } else {
+                camera.position.set(0, 0, 7);
+                model.scale.set(1, 1, 1);
+            }
+        }
+        adjustCameraForScreen();
         renderer.setClearColor(0x000000, 1);
 
         const ambientLight = new THREE.AmbientLight(0xf0c4df, 0.3);
@@ -845,6 +871,7 @@
         function onWindowResize() {
             // read canvas computed size (works with CSS media queries)
             setRendererToCanvasSize();
+            adjustCameraForScreen();
         }
         window.addEventListener('resize', onWindowResize);
 
