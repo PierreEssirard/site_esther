@@ -732,7 +732,6 @@
                 model.scale.set(1, 1, 1);
             }
         }
-        adjustCameraForScreen();
         renderer.setClearColor(0x000000, 1);
 
         const ambientLight = new THREE.AmbientLight(0xf0c4df, 0.3);
@@ -852,7 +851,27 @@
         model.add(wagonGroup);
         scene.add(model);
 
-        camera.position.set(0, 0, 7);
+        // --- Debug helpers: log wagon info and add a visible marker ---
+        try {
+            console.log('DEBUG: wagons count ->', wagonGroup.children.length);
+            const bbox = new THREE.Box3().setFromObject(wagonGroup);
+            const size = bbox.getSize(new THREE.Vector3());
+            const center = bbox.getCenter(new THREE.Vector3());
+            console.log('DEBUG: wagonGroup bbox size ->', size);
+            console.log('DEBUG: wagonGroup bbox center ->', center);
+
+            // Ensure wagons are visible and slightly larger for debug
+            wagonGroup.children.forEach((w, idx) => {
+                w.visible = true;
+                if (!w.scale) w.scale = new THREE.Vector3(1,1,1);
+                w.scale.set(1.15, 1.15, 1.15);
+            });
+        } catch (e) {
+            console.warn('DEBUG: error while inspecting wagons', e);
+        }
+
+        // adjust camera now that `model` exists
+        adjustCameraForScreen();
 
         let trainProgress = 0;
         const trainSpeedSlow = 0.0008;
