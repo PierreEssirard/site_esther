@@ -6,632 +6,49 @@
     <title>Esther Marty — Portfolio</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: 'Helvetica Neue', Arial, sans-serif;
-            background: #000;
-            color: #1a1a1a;
-            line-height: 1.6;
-            overflow-x: hidden;
-        }
-
-        .hero-section {
-            position: relative;
-            width: 100%;
-            height: 100vh;
-            background: #000;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            overflow: hidden;
-            padding: 0 5rem;
-        }
-
-        #canvas3d {
-            position: absolute;
-            left: 0;
-            top: 0;
-            width: 60%;
-            height: 100%;
-            display: block;
-        }
-
-        .hero-content {
-            position: relative;
-            z-index: 10;
-            margin-left: auto;
-            width: 40%;
-            padding-left: 3rem;
-            text-align: left;
-        }
-
-        /* Responsive: stack on small screens */
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Helvetica Neue', Arial, sans-serif; background: #000; color: #1a1a1a; line-height: 1.6; overflow-x: hidden; }
+        .hero-section { position: relative; width: 100%; height: 100vh; background: #000; display: flex; align-items: center; justify-content: space-between; overflow: hidden; padding: 0 5rem; }
+        #canvas3d { position: absolute; left: 0; top: 0; width: 100%; height: 100%; display: block; }
+        .hero-content { position: relative; z-index: 10; margin-left: auto; width: 40%; padding-left: 3rem; text-align: left; }
+        .hero-content h1 { font-size: 6rem; font-weight: 200; letter-spacing: -2px; margin-bottom: 2rem; color: #fff; line-height: 0.9; opacity: 0; transform: translateX(100px); animation: slideInRight 1.2s cubic-bezier(0.16, 1, 0.3, 1) forwards 0.3s; }
+        .hero-content .name-first { display: block; font-size: 5rem; font-weight: 300; margin-bottom: 0.2rem; }
+        .hero-content .name-last { display: block; font-size: 7rem; font-weight: 100; letter-spacing: -4px; }
+        .hero-content p { font-size: 1.1rem; font-weight: 300; letter-spacing: 3px; text-transform: uppercase; color: rgba(255, 255, 255, 0.7); opacity: 0; transform: translateX(100px); animation: slideInRight 1.2s cubic-bezier(0.16, 1, 0.3, 1) forwards 0.6s; margin-bottom: 3rem; }
+        .hero-lines { display: flex; flex-direction: column; gap: 1rem; opacity: 0; transform: translateX(100px); animation: slideInRight 1.2s cubic-bezier(0.16, 1, 0.3, 1) forwards 0.9s; }
+        .hero-line { height: 1px; background: linear-gradient(90deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.5) 50%, rgba(255,255,255,0) 100%); width: 0; animation: lineExpand 1.5s cubic-bezier(0.16, 1, 0.3, 1) forwards 1.2s; }
+        .hero-line:nth-child(2) { animation-delay: 1.4s; }
+        .hero-line:nth-child(3) { animation-delay: 1.6s; }
+        @keyframes slideInRight { to { opacity: 1; transform: translateX(0); } }
+        @keyframes lineExpand { to { width: 100%; } }
+        .scroll-indicator { position: absolute; bottom: 3rem; right: 5rem; color: #fff; font-size: 0.8rem; letter-spacing: 3px; opacity: 0; writing-mode: vertical-rl; text-orientation: mixed; animation: fadeIn 1s ease forwards 2s; }
+        .scroll-indicator::before { content: ''; display: block; width: 1px; height: 60px; background: linear-gradient(180deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.8) 100%); margin: 0 auto 1rem; animation: scrollLine 2s ease infinite 2.5s; }
+        @keyframes scrollLine { 0%, 100% { transform: translateY(0); opacity: 1; } 50% { transform: translateY(20px); opacity: 0.3; } }
+        header { position: fixed; top: 0; left: 0; right: 0; background: rgba(0, 0, 0, 0.8); backdrop-filter: blur(10px); padding: 1.5rem 3rem; display: flex; justify-content: space-between; align-items: center; z-index: 100; border-bottom: 1px solid rgba(255, 255, 255, 0.1); transition: all 0.3s ease; }
+        header.scrolled { background: rgba(250, 250, 250, 0.95); border-bottom: 1px solid rgba(0, 0, 0, 0.1); }
+        header.scrolled .logo, header.scrolled .school, header.scrolled .admin-btn { color: #1a1a1a; }
+        header.scrolled .admin-btn { border-color: #1a1a1a; }
+        .logo { font-size: 1rem; font-weight: 300; letter-spacing: 2px; color: #fff; transition: color 0.3s ease; }
+        .header-right { display: flex; align-items: center; gap: 2rem; }
+        .school { font-size: 0.8rem; color: rgba(255, 255, 255, 0.6); font-weight: 300; letter-spacing: 1px; transition: color 0.3s ease; }
+        .admin-btn { background: transparent; border: 1px solid rgba(255, 255, 255, 0.3); color: #fff; padding: 0.5rem 1rem; font-size: 0.75rem; cursor: pointer; transition: all 0.3s ease; letter-spacing: 1px; font-weight: 300; }
+        .admin-btn:hover { background: #fff; color: #000; border-color: #fff; }
+        header.scrolled .admin-btn:hover { background: #1a1a1a; color: #fff; }
+        .projects-section { background: #eac0e1; min-height: 100vh; padding-top: 100px; }
+        .projects-intro { max-width: 1600px; margin: 0 auto; padding: 3rem; opacity: 0; transform: translateY(50px); transition: all 0.8s ease; }
+        .projects-intro.visible { opacity: 1; transform: translateY(0); }
+        .projects-intro h2 { font-size: 2.5rem; font-weight: 300; letter-spacing: -0.5px; margin-bottom: 1rem; color: #1a1a1a; }
+        .projects-intro p { font-size: 1rem; color: #666; font-weight: 300; }
+        .gallery { max-width: 1600px; margin: 0 auto; padding: 2rem 3rem 4rem; display: grid; grid-template-columns: repeat(auto-fill, minmax(400px, 1fr)); gap: 2rem; }
+        .empty-state { grid-column: 1 / -1; text-align: center; padding: 6rem 2rem; color: #999; font-size: 1rem; font-weight: 300; }
+        @keyframes fadeIn { to { opacity: 1; } }
         @media (max-width: 900px) {
-            .hero-section {
-                flex-direction: column;
-                align-items: center;
-                justify-content: flex-start;
-                padding: 2rem;
-                height: auto;
-            }
-            #canvas3d {
-                position: relative;
-                width: 100%;
-                height: 50vh;
-            }
-            .hero-content {
-                width: 100%;
-                padding-left: 0;
-                margin: 1rem 0 2rem 0;
-                text-align: center;
-            }
+            .hero-section { flex-direction: column; align-items: center; justify-content: flex-start; padding: 2rem; height: auto; }
+            #canvas3d { position: relative; width: 100%; height: 50vh; }
+            .hero-content { width: 100%; padding-left: 0; margin: 1rem 0 2rem 0; text-align: center; }
             .hero-content h1 { font-size: 3.2rem; }
             .hero-content .name-first { font-size: 2.4rem; }
             .hero-content .name-last { font-size: 3.2rem; }
-            .hero-content p { font-size: 0.95rem; }
-        }
-
-        @media (max-width: 600px) {
-            .hero-section { padding: 1rem; }
-            #canvas3d { height: 40vh; }
-            .hero-content h1 { font-size: 2.2rem; }
-            .hero-content .name-first { font-size: 1.6rem; }
-            .hero-content .name-last { font-size: 2.2rem; }
-            .hero-content p { font-size: 0.9rem; letter-spacing: 1px; }
-            .hero-content { padding-left: 0.5rem; }
-        }
-
-        .hero-content h1 {
-            font-size: 6rem;
-            font-weight: 200;
-            letter-spacing: -2px;
-            margin-bottom: 2rem;
-            color: #fff;
-            line-height: 0.9;
-            opacity: 0;
-            transform: translateX(100px);
-            animation: slideInRight 1.2s cubic-bezier(0.16, 1, 0.3, 1) forwards 0.3s;
-        }
-
-        .hero-content .name-first {
-            display: block;
-            font-size: 5rem;
-            font-weight: 300;
-            margin-bottom: 0.2rem;
-        }
-
-        .hero-content .name-last {
-            display: block;
-            font-size: 7rem;
-            font-weight: 100;
-            letter-spacing: -4px;
-        }
-
-        .hero-content p {
-            font-size: 1.1rem;
-            font-weight: 300;
-            letter-spacing: 3px;
-            text-transform: uppercase;
-            color: rgba(255, 255, 255, 0.7);
-            opacity: 0;
-            transform: translateX(100px);
-            animation: slideInRight 1.2s cubic-bezier(0.16, 1, 0.3, 1) forwards 0.6s;
-            margin-bottom: 3rem;
-        }
-
-        .hero-lines {
-            display: flex;
-            flex-direction: column;
-            gap: 1rem;
-            opacity: 0;
-            transform: translateX(100px);
-            animation: slideInRight 1.2s cubic-bezier(0.16, 1, 0.3, 1) forwards 0.9s;
-        }
-
-        .hero-line {
-            height: 1px;
-            background: linear-gradient(90deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.5) 50%, rgba(255,255,255,0) 100%);
-            width: 0;
-            animation: lineExpand 1.5s cubic-bezier(0.16, 1, 0.3, 1) forwards 1.2s;
-        }
-
-        .hero-line:nth-child(2) { animation-delay: 1.4s; }
-        .hero-line:nth-child(3) { animation-delay: 1.6s; }
-
-        @keyframes slideInRight {
-            to {
-                opacity: 1;
-                transform: translateX(0);
-            }
-        }
-
-        @keyframes lineExpand {
-            to { width: 100%; }
-        }
-
-        .scroll-indicator {
-            position: absolute;
-            bottom: 3rem;
-            right: 5rem;
-            color: #fff;
-            font-size: 0.8rem;
-            letter-spacing: 3px;
-            opacity: 0;
-            writing-mode: vertical-rl;
-            text-orientation: mixed;
-            animation: fadeIn 1s ease forwards 2s;
-        }
-
-        .scroll-indicator::before {
-            content: '';
-            display: block;
-            width: 1px;
-            height: 60px;
-            background: linear-gradient(180deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.8) 100%);
-            margin: 0 auto 1rem;
-            animation: scrollLine 2s ease infinite 2.5s;
-        }
-
-        @keyframes scrollLine {
-            0%, 100% { transform: translateY(0); opacity: 1; }
-            50% { transform: translateY(20px); opacity: 0.3; }
-        }
-
-        header {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            background: rgba(0, 0, 0, 0.8);
-            backdrop-filter: blur(10px);
-            padding: 1.5rem 3rem;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            z-index: 100;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-            transition: all 0.3s ease;
-        }
-
-        header.scrolled {
-            background: rgba(250, 250, 250, 0.95);
-            border-bottom: 1px solid rgba(0, 0, 0, 0.1);
-        }
-
-        header.scrolled .logo,
-        header.scrolled .school,
-        header.scrolled .admin-btn {
-            color: #1a1a1a;
-        }
-
-        header.scrolled .admin-btn {
-            border-color: #1a1a1a;
-        }
-
-        .logo {
-            font-size: 1rem;
-            font-weight: 300;
-            letter-spacing: 2px;
-            color: #fff;
-            transition: color 0.3s ease;
-        }
-
-        .header-right {
-            display: flex;
-            align-items: center;
-            gap: 2rem;
-        }
-
-        .school {
-            font-size: 0.8rem;
-            color: rgba(255, 255, 255, 0.6);
-            font-weight: 300;
-            letter-spacing: 1px;
-            transition: color 0.3s ease;
-        }
-
-        .admin-btn {
-            background: transparent;
-            border: 1px solid rgba(255, 255, 255, 0.3);
-            color: #fff;
-            padding: 0.5rem 1rem;
-            font-size: 0.75rem;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            letter-spacing: 1px;
-            font-weight: 300;
-        }
-
-        .admin-btn:hover {
-            background: #fff;
-            color: #000;
-            border-color: #fff;
-        }
-
-        header.scrolled .admin-btn:hover {
-            background: #1a1a1a;
-            color: #fff;
-        }
-
-        .login-modal {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.95);
-            z-index: 1000;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .login-modal.active { display: flex; }
-
-        .login-box {
-            background: #1a1a1a;
-            border: 1px solid #333;
-            padding: 3rem;
-            max-width: 400px;
-            width: 90%;
-            text-align: center;
-        }
-
-        .login-box h2 {
-            font-size: 1.5rem;
-            font-weight: 300;
-            margin-bottom: 2rem;
-            letter-spacing: 1px;
-            color: #fff;
-        }
-
-        .login-box input {
-            width: 100%;
-            padding: 1rem;
-            border: 1px solid #333;
-            background: #000;
-            color: #fff;
-            font-size: 1rem;
-            margin-bottom: 1.5rem;
-            font-family: 'Courier New', monospace;
-            letter-spacing: 8px;
-            text-align: center;
-        }
-
-        .login-box input:focus {
-            outline: none;
-            border-color: #fff;
-        }
-
-        .login-box button {
-            width: 100%;
-            padding: 1rem;
-            background: #fff;
-            color: #000;
-            border: none;
-            cursor: pointer;
-            font-size: 0.9rem;
-            letter-spacing: 1px;
-            transition: all 0.3s ease;
-        }
-
-        .login-box button:hover { background: #ddd; }
-
-        .login-error {
-            color: #ff6b6b;
-            font-size: 0.85rem;
-            margin-top: 1rem;
-            opacity: 0;
-            transition: opacity 0.3s ease;
-        }
-
-        .login-error.show { opacity: 1; }
-
-        .close-login {
-            position: absolute;
-            top: 2rem;
-            right: 3rem;
-            font-size: 2rem;
-            color: #fff;
-            cursor: pointer;
-            font-weight: 300;
-        }
-
-        .upload-container {
-            position: fixed;
-            top: 80px;
-            right: 3rem;
-            z-index: 50;
-            display: none;
-        }
-
-        .upload-container.logged-in { display: block; }
-
-        .upload-btn {
-            background: #1a1a1a;
-            color: #fff;
-            border: none;
-            padding: 0.6rem 1.2rem;
-            font-size: 0.85rem;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            letter-spacing: 0.5px;
-            font-weight: 300;
-        }
-
-        .upload-btn:hover { background: #333; }
-
-        .upload-box {
-            position: absolute;
-            top: 50px;
-            right: 0;
-            background: white;
-            border: 1px solid #e0e0e0;
-            padding: 1.5rem;
-            min-width: 250px;
-            opacity: 0;
-            visibility: hidden;
-            transform: translateY(-10px);
-            transition: all 0.3s ease;
-            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.08);
-        }
-
-        .upload-box.active {
-            opacity: 1;
-            visibility: visible;
-            transform: translateY(0);
-        }
-
-        .upload-box p {
-            font-size: 0.85rem;
-            color: #666;
-            margin-bottom: 1rem;
-        }
-
-        .upload-area {
-            border: 1px dashed #ccc;
-            padding: 2rem 1rem;
-            text-align: center;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            background: #fafafa;
-        }
-
-        .upload-area:hover {
-            border-color: #1a1a1a;
-            background: #f5f5f5;
-        }
-
-        .upload-area.dragover {
-            border-color: #1a1a1a;
-            background: #f0f0f0;
-        }
-
-        input[type="file"] { display: none; }
-
-        .projects-section {
-            background: #eac0e1;
-            min-height: 100vh;
-            padding-top: 100px;
-        }
-
-        .projects-intro {
-            max-width: 1600px;
-            margin: 0 auto;
-            padding: 3rem;
-            opacity: 0;
-            transform: translateY(50px);
-            transition: all 0.8s ease;
-        }
-
-        .projects-intro.visible {
-            opacity: 1;
-            transform: translateY(0);
-        }
-
-        .projects-intro h2 {
-            font-size: 2.5rem;
-            font-weight: 300;
-            letter-spacing: -0.5px;
-            margin-bottom: 1rem;
-            color: #1a1a1a;
-        }
-
-        .projects-intro p {
-            font-size: 1rem;
-            color: #666;
-            font-weight: 300;
-        }
-
-        .gallery {
-            max-width: 1600px;
-            margin: 0 auto;
-            padding: 2rem 3rem 4rem;
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
-            gap: 2rem;
-        }
-
-        .project {
-            cursor: pointer;
-            opacity: 0;
-            transform: translateY(30px);
-            transition: all 0.6s ease;
-        }
-
-        .project.visible {
-            opacity: 1;
-            transform: translateY(0);
-        }
-
-        .project-media {
-            width: 100%;
-            aspect-ratio: 4/3;
-            overflow: hidden;
-            background: #f5f5f5;
-            position: relative;
-            margin-bottom: 0.8rem;
-        }
-
-        .project-media img,
-        .project-media video {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-            transition: transform 0.6s ease;
-        }
-
-        .project:hover .project-media img,
-        .project:hover .project-media video {
-            transform: scale(1.03);
-        }
-
-        .project-info {
-            display: flex;
-            justify-content: space-between;
-            align-items: baseline;
-            font-size: 0.9rem;
-        }
-
-        .project-name {
-            font-weight: 400;
-            color: #1a1a1a;
-        }
-
-        .project-date {
-            color: #999;
-            font-size: 0.8rem;
-            font-weight: 300;
-        }
-
-        .delete-btn {
-            position: absolute;
-            top: 10px;
-            right: 10px;
-            background: rgba(26, 26, 26, 0.8);
-            color: white;
-            border: none;
-            width: 30px;
-            height: 30px;
-            font-size: 1.2rem;
-            cursor: pointer;
-            opacity: 0;
-            transition: all 0.3s ease;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .project:hover .delete-btn { opacity: 1; }
-        .delete-btn:hover { background: rgba(0, 0, 0, 0.95); }
-
-        .modal {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(250, 250, 250, 0.98);
-            z-index: 1000;
-            align-items: center;
-            justify-content: center;
-            opacity: 0;
-            transition: opacity 0.3s ease;
-        }
-
-        .modal.active {
-            display: flex;
-            opacity: 1;
-        }
-
-        .modal-content {
-            max-width: 90%;
-            max-height: 85vh;
-        }
-
-        .modal-content img,
-        .modal-content video {
-            max-width: 100%;
-            max-height: 85vh;
-            object-fit: contain;
-        }
-
-        .close-modal {
-            position: absolute;
-            top: 2rem;
-            right: 3rem;
-            font-size: 2rem;
-            color: #1a1a1a;
-            cursor: pointer;
-            font-weight: 300;
-            transition: transform 0.3s ease;
-        }
-
-        .close-modal:hover { transform: rotate(90deg); }
-
-        .empty-state {
-            grid-column: 1 / -1;
-            text-align: center;
-            padding: 6rem 2rem;
-            color: #999;
-            font-size: 1rem;
-            font-weight: 300;
-        }
-
-        @keyframes fadeIn {
-            to { opacity: 1; }
-        }
-
-        @media (max-width: 1024px) {
-            .hero-section { padding: 0 2rem; }
-            #canvas3d { width: 50%; }
-            .hero-content {
-                width: 50%;
-                padding-left: 2rem;
-            }
-            .hero-content h1 { font-size: 4rem; }
-            .hero-content .name-first { font-size: 3.5rem; }
-            .hero-content .name-last { font-size: 5rem; }
-            .gallery {
-                grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-                gap: 1.5rem;
-                padding: 2rem 1.5rem 4rem;
-            }
-            header { padding: 1.5rem 1.5rem; }
-            .projects-intro { padding: 2rem 1.5rem; }
-            .upload-container { right: 1.5rem; }
-        }
-
-        @media (max-width: 768px) {
-            .hero-section {
-                flex-direction: column;
-                padding: 0;
-            }
-            #canvas3d {
-                width: 100%;
-                height: 50%;
-            }
-            .hero-content {
-                width: 100%;
-                height: 50%;
-                padding: 2rem;
-                display: flex;
-                flex-direction: column;
-                justify-content: center;
-            }
-            .hero-content h1 { font-size: 3rem; }
-            .hero-content .name-first { font-size: 2.5rem; }
-            .hero-content .name-last { font-size: 4rem; }
-            .scroll-indicator { right: 2rem; }
-            .gallery { grid-template-columns: 1fr; }
-            .header-right { gap: 1rem; }
-            .school { display: none; }
         }
     </style>
 </head>
@@ -640,30 +57,9 @@
         <div class="logo">EM</div>
         <div class="header-right">
             <div class="school">ÉCOLE ESTIENNE · PARIS</div>
-            <button class="admin-btn" onclick="openLogin()">ADMIN</button>
+            <button class="admin-btn">ADMIN</button>
         </div>
     </header>
-
-    <div class="login-modal" id="loginModal">
-        <span class="close-login" onclick="closeLogin()">×</span>
-        <div class="login-box">
-            <h2>Connexion</h2>
-            <input type="password" id="passwordInput" placeholder="••••" maxlength="4" autocomplete="off">
-            <button onclick="checkPassword()">Valider</button>
-            <div class="login-error" id="loginError">Code incorrect</div>
-        </div>
-    </div>
-
-    <div class="upload-container" id="uploadContainer">
-        <button class="upload-btn" onclick="toggleUpload()">+ Ajouter</button>
-        <div class="upload-box" id="uploadBox">
-            <p>Importer un projet</p>
-            <div class="upload-area" id="uploadArea" onclick="document.getElementById('fileInput').click()">
-                <span style="font-size: 0.85rem; color: #999;">Glisser ou cliquer</span>
-            </div>
-            <input type="file" id="fileInput" accept="image/*,video/*" multiple>
-        </div>
-    </div>
 
     <section class="hero-section">
         <canvas id="canvas3d"></canvas>
@@ -692,88 +88,31 @@
         </div>
     </section>
 
-    <div class="modal" id="modal" onclick="closeModalOnBackground(event)">
-        <span class="close-modal" onclick="closeModal()">×</span>
-        <div class="modal-content" id="modalContent"></div>
-    </div>
-
     <script>
-        let projects = [];
-        let uploadBoxOpen = false;
-        let isLoggedIn = false;
-
         const canvas = document.getElementById('canvas3d');
         const scene = new THREE.Scene();
-        const camera = new THREE.PerspectiveCamera(75, (window.innerWidth * 0.6) / window.innerHeight, 0.1, 1000);
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
         const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
         
-        // initialize renderer size from canvas CSS size (supports responsive layout)
         function setRendererToCanvasSize() {
-            const rect = canvas.getBoundingClientRect();
-            const width = Math.max(1, Math.floor(rect.width));
-            const height = Math.max(1, Math.floor(rect.height));
+            const width = window.innerWidth;
+            const height = window.innerHeight;
             renderer.setPixelRatio(window.devicePixelRatio || 1);
             renderer.setSize(width, height, false);
             camera.aspect = width / height;
             camera.updateProjectionMatrix();
         }
-        setRendererToCanvasSize();
-        // adjust camera / model scale depending on screen size for better mobile framing
-        function adjustCameraForScreen() {
-            const w = window.innerWidth;
-            if (w <= 480) {
-                camera.position.set(0, 0, 5);
-                model.scale.set(0.85, 0.85, 0.85);
-            } else if (w <= 900) {
-                camera.position.set(0, 0, 5.5);
-                model.scale.set(0.95, 0.95, 0.95);
-            } else {
-                camera.position.set(0, 0, 7);
-                model.scale.set(1, 1, 1);
-            }
-        }
-        // If the page is served from a remote host (GitHub Pages) the script
-        // can run before styles/layout applied and `canvas.getBoundingClientRect()`
-        // returns a 0 size. Ensure renderer sizing & camera adjustment run after
-        // the page has loaded and the canvas has a non-zero size.
-        function ensureRendererReady(retries = 0) {
-            const rect = canvas.getBoundingClientRect();
-            if ((rect.width < 1 || rect.height < 1) && retries < 20) {
-                // retry after a short delay
-                setTimeout(() => ensureRendererReady(retries + 1), 150);
-                return;
-            }
-            setRendererToCanvasSize();
-            // Only adjust camera if `model` exists to avoid ReferenceError
-            if (typeof model !== 'undefined' && model) adjustCameraForScreen();
-            console.log('INIT: renderer ready, size=', rect.width, rect.height);
-        }
-
-        // Run the ensure flow after full load (covers static hosting differences)
-        window.addEventListener('load', () => ensureRendererReady());
-        // Also try at DOMContentLoaded as a fallback
-        document.addEventListener('DOMContentLoaded', () => ensureRendererReady());
 
         renderer.setClearColor(0x000000, 1);
 
         const ambientLight = new THREE.AmbientLight(0xf0c4df, 0.3);
         scene.add(ambientLight);
-
         const light1 = new THREE.DirectionalLight(0xf0c4df, 3.0);
         light1.position.set(5, 5, 5);
         scene.add(light1);
-
         const light2 = new THREE.DirectionalLight(0xf0c4df, 2.8);
         light2.position.set(-5, 3, -5);
         scene.add(light2);
-
-        const light3 = new THREE.DirectionalLight(0xf0c4df, 2.5);
-        light3.position.set(0, -5, 3);
-        scene.add(light3);
-        
-        const light4 = new THREE.PointLight(0xf0c4df, 2.0);
-        light4.position.set(0, 0, 5);
-        scene.add(light4);
 
         const model = new THREE.Group();
         const radius = 2.5;
@@ -782,29 +121,15 @@
         
         for (let i = 0; i <= segments; i++) {
             const angle = (i / segments) * Math.PI * 2;
-            circlePoints.push(new THREE.Vector3(
-                Math.cos(angle) * radius,
-                Math.sin(angle) * radius,
-                0
-            ));
+            circlePoints.push(new THREE.Vector3(Math.cos(angle) * radius, Math.sin(angle) * radius, 0));
         }
         
         const circleCurve = new THREE.CatmullRomCurve3(circlePoints, true);
-        
         const railGeo = new THREE.TubeGeometry(circleCurve, 120, 0.08, 16, true);
-        const railMat = new THREE.MeshBasicMaterial({ 
-            color: 0xf0c4df
-        });
-        const rail = new THREE.Mesh(railGeo, railMat);
+        const rail = new THREE.Mesh(railGeo, new THREE.MeshBasicMaterial({ color: 0xf0c4df }));
         model.add(rail);
         
-        const railInnerGeo = new THREE.TubeGeometry(circleCurve, 120, 0.04, 12, true);
-        const railInnerMat = new THREE.MeshBasicMaterial({ 
-            color: 0xf0c4df,
-            transparent: true,
-            opacity: 0.7
-        });
-        const railInner = new THREE.Mesh(railInnerGeo, railInnerMat);
+        const railInner = new THREE.Mesh(new THREE.TubeGeometry(circleCurve, 120, 0.04, 12, true), new THREE.MeshBasicMaterial({ color: 0xf0c4df, transparent: true, opacity: 0.7 }));
         railInner.scale.set(0.95, 0.95, 1);
         model.add(railInner);
         
@@ -813,48 +138,26 @@
         
         for (let i = 0; i < numWagons; i++) {
             const wagonContainer = new THREE.Group();
-            
-            const wagonGeo = new THREE.BoxGeometry(0.5, 0.35, 0.35);
-            const wagonMat = new THREE.MeshBasicMaterial({
-                color: 0xa8d0ff
-            });
-            const wagon = new THREE.Mesh(wagonGeo, wagonMat);
+            const wagon = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.35, 0.35), new THREE.MeshBasicMaterial({ color: 0xa8d0ff }));
             wagonContainer.add(wagon);
             
-            const stripe1Geo = new THREE.BoxGeometry(0.52, 0.08, 0.36);
-            const stripe1Mat = new THREE.MeshBasicMaterial({ 
-                color: i % 3 === 0 ? 0xa8c9e8 : i % 3 === 1 ? 0xb8d4f0 : 0xc8def5,
-                transparent: true,
-                opacity: 0.95
-            });
-            const stripe1 = new THREE.Mesh(stripe1Geo, stripe1Mat);
-            stripe1.position.y = 0.1;
-            wagonContainer.add(stripe1);
+            const stripe = new THREE.Mesh(new THREE.BoxGeometry(0.52, 0.08, 0.36), new THREE.MeshBasicMaterial({ color: i % 3 === 0 ? 0xa8c9e8 : i % 3 === 1 ? 0xb8d4f0 : 0xc8def5, transparent: true, opacity: 0.95 }));
+            stripe.position.y = 0.1;
+            wagonContainer.add(stripe);
             
             const windowGeo = new THREE.PlaneGeometry(0.12, 0.12);
-            const windowMat = new THREE.MeshBasicMaterial({ 
-                color: 0xfff1a8,
-                transparent: true,
-                opacity: 0.75
-            });
-            
+            const windowMat = new THREE.MeshBasicMaterial({ color: 0xfff1a8, transparent: true, opacity: 0.75 });
             for (let j = 0; j < 3; j++) {
                 const win = new THREE.Mesh(windowGeo, windowMat);
-                win.position.x = (j - 1) * 0.15;
-                win.position.z = 0.181;
+                win.position.set((j - 1) * 0.15, 0, 0.181);
                 wagonContainer.add(win);
-                
                 const winBack = win.clone();
                 winBack.position.z = -0.181;
                 winBack.rotation.y = Math.PI;
                 wagonContainer.add(winBack);
             }
             
-            const roofGeo = new THREE.BoxGeometry(0.52, 0.03, 0.36);
-            const roofMat = new THREE.MeshBasicMaterial({ 
-                color: 0xfff1a8
-            });
-            const roof = new THREE.Mesh(roofGeo, roofMat);
+            const roof = new THREE.Mesh(new THREE.BoxGeometry(0.52, 0.03, 0.36), new THREE.MeshBasicMaterial({ color: 0xfff1a8 }));
             roof.position.y = 0.19;
             wagonContainer.add(roof);
 
@@ -871,89 +174,342 @@
             wagonGroup.add(wagonContainer);
         }
         model.add(wagonGroup);
+        model.position.set(-5, 0, 0); // Déplacer tout le modèle à gauche
         scene.add(model);
 
-        // --- Debug helpers: log wagon info and add a visible marker ---
-        try {
-            console.log('DEBUG: wagons count ->', wagonGroup.children.length);
-            const bbox = new THREE.Box3().setFromObject(wagonGroup);
-            const size = bbox.getSize(new THREE.Vector3());
-            const center = bbox.getCenter(new THREE.Vector3());
-            console.log('DEBUG: wagonGroup bbox size ->', size);
-            console.log('DEBUG: wagonGroup bbox center ->', center);
-
-            // Ensure wagons are visible and slightly larger for debug
-            wagonGroup.children.forEach((w, idx) => {
-                w.visible = true;
-                if (!w.scale) w.scale = new THREE.Vector3(1,1,1);
-                w.scale.set(1.15, 1.15, 1.15);
-            });
-        } catch (e) {
-            console.warn('DEBUG: error while inspecting wagons', e);
+        function adjustCameraForScreen() {
+            const w = window.innerWidth;
+            if (w <= 480) {
+                camera.position.set(0, 0, 5);
+                model.scale.set(0.85, 0.85, 0.85);
+            } else if (w <= 900) {
+                camera.position.set(0, 0, 5.5);
+                model.scale.set(0.95, 0.95, 0.95);
+            } else {
+                camera.position.set(0, 0, 7);
+                model.scale.set(1, 1, 1);
+            }
         }
 
-        // adjust camera now that `model` exists
-        adjustCameraForScreen();
-
-        let trainProgress = 0;
-        const trainSpeedSlow = 0.0008;
-        const trainSpeedFast = 0.001;
-        let currentSpeed = trainSpeedSlow;
-        let isHovering = false;
-
-        canvas.addEventListener('mouseenter', () => {
-            isHovering = true;
-        });
-
-        canvas.addEventListener('mouseleave', () => {
-            isHovering = false;
-        });
-
-        function onWindowResize() {
-            // read canvas computed size (works with CSS media queries)
+        function ensureRendererReady(retries = 0) {
+            if (retries < 20) {
+                setTimeout(() => ensureRendererReady(retries + 1), 150);
+                return;
+            }
             setRendererToCanvasSize();
             adjustCameraForScreen();
         }
-        window.addEventListener('resize', onWindowResize);
+
+        window.addEventListener('load', () => ensureRendererReady());
+        window.addEventListener('resize', () => { setRendererToCanvasSize(); adjustCameraForScreen(); });
+
+        let trainProgress = 0;
+        const trainSpeedSlow = 0.0008;
+        const trainSpeedFast = 0.01;
+        let currentSpeed = trainSpeedSlow;
+        let isHovering = false;
+        let fastLapCount = 0;
+        let hasExploded = false;
+        let particles = [];
+        let haussmannBuilding = null;
+        let wasInFastMode = false;
+        let lapStarted = false;
+
+        canvas.addEventListener('mouseenter', () => { isHovering = true; });
+        canvas.addEventListener('mouseleave', () => { isHovering = false; });
+
+        function createHaussmannBuilding() {
+            const sculpture = new THREE.Group();
+            
+            // Chemin de vie en spirale ascendante - symbolise l'évolution personnelle
+            const spiralPoints = [];
+            const turns = 3;
+            const height = 4;
+            const radiusBase = 1.5;
+            
+            for (let i = 0; i <= 100; i++) {
+                const t = i / 100;
+                const angle = t * Math.PI * 2 * turns;
+                const r = radiusBase * (1 - t * 0.3);
+                const y = t * height - height / 2;
+                spiralPoints.push(new THREE.Vector3(
+                    Math.cos(angle) * r,
+                    y,
+                    Math.sin(angle) * r
+                ));
+            }
+            
+            const spiralCurve = new THREE.CatmullRomCurve3(spiralPoints);
+            const spiralPath = new THREE.Mesh(
+                new THREE.TubeGeometry(spiralCurve, 100, 0.08, 8, false),
+                new THREE.MeshBasicMaterial({ color: 0xfff1a8, transparent: true, opacity: 0.9 })
+            );
+            sculpture.add(spiralPath);
+            
+            // Sphères le long du chemin - moments clés de la vie
+            for (let i = 0; i <= 10; i++) {
+                const t = i / 10;
+                const point = spiralCurve.getPoint(t);
+                const sphere = new THREE.Mesh(
+                    new THREE.SphereGeometry(0.15 + Math.sin(i) * 0.05, 16, 16),
+                    new THREE.MeshBasicMaterial({ 
+                        color: i % 3 === 0 ? 0xa8d0ff : i % 3 === 1 ? 0xf0c4df : 0xfff1a8,
+                        transparent: true,
+                        opacity: 0.85
+                    })
+                );
+                sphere.position.copy(point);
+                sculpture.add(sphere);
+            }
+            
+            // Base - le commencement
+            const baseRing = new THREE.Mesh(
+                new THREE.TorusGeometry(1.8, 0.12, 16, 32),
+                new THREE.MeshBasicMaterial({ color: 0xb8d4f0, transparent: true, opacity: 0.7 })
+            );
+            baseRing.position.y = -height / 2 - 0.3;
+            baseRing.rotation.x = Math.PI / 2;
+            sculpture.add(baseRing);
+            
+            // Sommet - l'accomplissement (fleur épanouie)
+            const petalCount = 8;
+            for (let i = 0; i < petalCount; i++) {
+                const angle = (i / petalCount) * Math.PI * 2;
+                const petal = new THREE.Mesh(
+                    new THREE.BoxGeometry(0.6, 0.15, 0.08),
+                    new THREE.MeshBasicMaterial({ 
+                        color: i % 2 === 0 ? 0xf0c4df : 0xeac0e1,
+                        transparent: true,
+                        opacity: 0.8
+                    })
+                );
+                petal.position.set(
+                    Math.cos(angle) * 0.5,
+                    height / 2 + 0.3,
+                    Math.sin(angle) * 0.5
+                );
+                petal.rotation.y = angle;
+                petal.rotation.z = Math.PI / 6;
+                sculpture.add(petal);
+            }
+            
+            // Centre de la fleur
+            const flowerCenter = new THREE.Mesh(
+                new THREE.SphereGeometry(0.25, 16, 16),
+                new THREE.MeshBasicMaterial({ color: 0xfff1a8 })
+            );
+            flowerCenter.position.y = height / 2 + 0.3;
+            sculpture.add(flowerCenter);
+            
+            // Particules flottantes autour - rêves et aspirations
+            for (let i = 0; i < 20; i++) {
+                const angle = Math.random() * Math.PI * 2;
+                const distance = 2 + Math.random() * 1;
+                const yPos = (Math.random() - 0.5) * height;
+                
+                const particle = new THREE.Mesh(
+                    new THREE.BoxGeometry(0.08, 0.08, 0.08),
+                    new THREE.MeshBasicMaterial({ 
+                        color: [0xa8d0ff, 0xf0c4df, 0xfff1a8][Math.floor(Math.random() * 3)],
+                        transparent: true,
+                        opacity: 0.6
+                    })
+                );
+                particle.position.set(
+                    Math.cos(angle) * distance,
+                    yPos,
+                    Math.sin(angle) * distance
+                );
+                particle.userData.orbitSpeed = 0.001 + Math.random() * 0.002;
+                particle.userData.orbitRadius = distance;
+                particle.userData.orbitAngle = angle;
+                particle.userData.yBase = yPos;
+                sculpture.add(particle);
+                sculpture.userData.orbitingParticles = sculpture.userData.orbitingParticles || [];
+                    sculpture.userData.orbitingParticles.push(particle);
+            }
+            
+            sculpture.position.set(0, 0, 0);
+            return sculpture;
+        }
+
+        function createParticle(position, velocity) {
+            const size = Math.random() * 0.15 + 0.05;
+            const colors = [0xa8d0ff, 0xfff1a8, 0xb8d4f0, 0xc8def5, 0xf0c4df, 0xeac0e1, 0xffd4e5];
+            const particle = new THREE.Mesh(new THREE.BoxGeometry(size, size, size), new THREE.MeshBasicMaterial({ color: colors[Math.floor(Math.random() * colors.length)] }));
+            particle.position.copy(position);
+            particle.userData.velocity = velocity;
+            particle.userData.rotation = new THREE.Vector3((Math.random() - 0.5) * 0.2, (Math.random() - 0.5) * 0.2, (Math.random() - 0.5) * 0.2);
+            return particle;
+        }
+
+        function explodeTrain() {
+            hasExploded = true;
+            wagonGroup.children.forEach(wagon => {
+                const pos = wagon.position.clone();
+                for (let i = 0; i < 60; i++) {
+                    // Vélocité MASSIVE pour atteindre absolument TOUS les coins
+                    const velocity = new THREE.Vector3(
+                        (Math.random() - 0.5) * 8,
+                        (Math.random() - 0.5) * 8,
+                        (Math.random() - 0.5) * 8
+                    );
+                    const particle = createParticle(pos, velocity);
+                    particles.push(particle);
+                    scene.add(particle);
+                }
+            });
+            
+            // BEAUCOUP plus de particules depuis le centre avec vitesse extrême
+            for (let i = 0; i < 300; i++) {
+                const centerPos = new THREE.Vector3(0, 0, 0);
+                const angle = (i / 300) * Math.PI * 2;
+                const elevation = (Math.random() - 0.5) * Math.PI;
+                const speed = 3 + Math.random() * 6; // Vitesse TRÈS augmentée
+                
+                const velocity = new THREE.Vector3(
+                    Math.cos(angle) * Math.cos(elevation) * speed,
+                    Math.sin(elevation) * speed,
+                    Math.sin(angle) * Math.cos(elevation) * speed
+                );
+                
+                const particle = createParticle(centerPos, velocity);
+                particles.push(particle);
+                scene.add(particle);
+            }
+            
+            wagonGroup.visible = false;
+            rail.visible = false;
+            railInner.visible = false;
+            
+            setTimeout(() => {
+                haussmannBuilding = createHaussmannBuilding();
+                haussmannBuilding.position.set(-5, 0, 0); // Positionner à gauche
+                scene.add(haussmannBuilding);
+                haussmannBuilding.scale.set(0, 0, 0);
+                const startTime = Date.now();
+                function animateAppear() {
+                    const elapsed = Date.now() - startTime;
+                    const progress = Math.min(elapsed / 2000, 1);
+                    const eased = 1 - Math.pow(1 - progress, 3);
+                    haussmannBuilding.scale.set(eased, eased, eased);
+                    if (progress < 1) requestAnimationFrame(animateAppear);
+                }
+                animateAppear();
+            }, 1500);
+        }
 
         function animate() {
             requestAnimationFrame(animate);
             
-            if (isHovering) {
-                currentSpeed += (trainSpeedFast - currentSpeed) * 0.05;
+            if (!hasExploded) {
+                if (isHovering) {
+                    currentSpeed += (trainSpeedFast - currentSpeed) * 0.05;
+                } else {
+                    currentSpeed += (trainSpeedSlow - currentSpeed) * 0.05;
+                }
+                
+                const oldProgress = trainProgress;
+                trainProgress = (trainProgress + currentSpeed) % 1;
+                
+                // Détecter si on est en mode rapide
+                const isInFastMode = currentSpeed > (trainSpeedSlow + trainSpeedFast) / 2;
+                
+                // Compter un tour quand on passe de ~1 à ~0 en mode rapide
+                if (isInFastMode) {
+                    if (!lapStarted) {
+                        lapStarted = true;
+                    }
+                    if (oldProgress > 0.9 && trainProgress < 0.1) {
+                        fastLapCount++;
+                        console.log('🏁 Tour rapide complété:', fastLapCount, '/ 10');
+                        if (fastLapCount >= 1.5) {
+                            console.log('💥 EXPLOSION !');
+                            explodeTrain();
+                        }
+                    }
+                } else {
+                    lapStarted = false;
+                }
+
+                wagonGroup.children.forEach(wagon => {
+                    const t = (trainProgress + wagon.userData.offset) % 1;
+                    const pos = circleCurve.getPoint(t);
+                    wagon.position.copy(pos);
+                    const tangent = circleCurve.getTangent(t);
+                    wagon.rotation.z = Math.atan2(tangent.y, tangent.x);
+                });
+
+                model.rotation.y = Math.sin(Date.now() * 0.0005) * 0.15;
+                model.rotation.x = Math.cos(Date.now() * 0.0003) * 0.08;
             } else {
-                currentSpeed += (trainSpeedSlow - currentSpeed) * 0.05;
+                particles.forEach((particle, index) => {
+                    particle.position.add(particle.userData.velocity);
+                    particle.userData.velocity.y -= 0.002; // Gravité encore plus douce
+                    // Presque pas de friction pour aller très loin
+                    particle.userData.velocity.multiplyScalar(0.995);
+                    particle.rotation.x += particle.userData.rotation.x;
+                    particle.rotation.y += particle.userData.rotation.y;
+                    particle.rotation.z += particle.userData.rotation.z;
+                    // Limites ÉNORMES pour couvrir absolument tout l'écran
+                    if (particle.position.y < -30 || Math.abs(particle.position.x) > 60 || Math.abs(particle.position.z) > 60) {
+                        scene.remove(particle);
+                        particles.splice(index, 1);
+                    }
+                });
+                if (haussmannBuilding) {
+                    haussmannBuilding.rotation.y += 0.003;
+                    
+                    // Faire tomber des petits cubes moins fréquemment
+                    if (Math.random() < 0.015) { // 1.5% de chance (réduit de 5%)
+                        const angle = Math.random() * Math.PI * 2;
+                        const distance = 3 + Math.random() * 2;
+                        const colors = [0xa8d0ff, 0xf0c4df, 0xfff1a8, 0xb8d4f0, 0xeac0e1];
+                        
+                        const fallingCube = new THREE.Mesh(
+                            new THREE.BoxGeometry(0.1, 0.1, 0.1),
+                            new THREE.MeshBasicMaterial({ 
+                                color: colors[Math.floor(Math.random() * colors.length)],
+                                transparent: true,
+                                opacity: 0.8
+                            })
+                        );
+                        fallingCube.position.set(
+                            Math.cos(angle) * distance,
+                            3 + Math.random() * 2,
+                            Math.sin(angle) * distance
+                        );
+                        fallingCube.userData.velocity = new THREE.Vector3(0, -0.02, 0);
+                        fallingCube.userData.rotation = new THREE.Vector3(
+                            (Math.random() - 0.5) * 0.1,
+                            (Math.random() - 0.5) * 0.1,
+                            (Math.random() - 0.5) * 0.1
+                        );
+                        particles.push(fallingCube);
+                        scene.add(fallingCube);
+                    }
+                    
+                    if (haussmannBuilding.userData.orbitingParticles) {
+                        haussmannBuilding.userData.orbitingParticles.forEach(p => {
+                            p.userData.orbitAngle += p.userData.orbitSpeed;
+                            p.position.x = Math.cos(p.userData.orbitAngle) * p.userData.orbitRadius;
+                            p.position.z = Math.sin(p.userData.orbitAngle) * p.userData.orbitRadius;
+                            p.position.y = p.userData.yBase + Math.sin(Date.now() * 0.001 + p.userData.orbitAngle) * 0.2;
+                            p.rotation.x += 0.01;
+                            p.rotation.y += 0.01;
+                        });
+                    }
+                }
             }
-            
-            trainProgress = (trainProgress + currentSpeed) % 1;
-
-            wagonGroup.children.forEach(wagon => {
-                const t = (trainProgress + wagon.userData.offset) % 1;
-                const pos = circleCurve.getPoint(t);
-                wagon.position.copy(pos);
-                const tangent = circleCurve.getTangent(t);
-                wagon.rotation.z = Math.atan2(tangent.y, tangent.x);
-            });
-
-            model.rotation.y = Math.sin(Date.now() * 0.0005) * 0.15;
-            model.rotation.x = Math.cos(Date.now() * 0.0003) * 0.08;
 
             renderer.render(scene, camera);
         }
         animate();
 
-        function openLogin() { document.getElementById('loginModal').classList.add('active'); }
-        function closeLogin() { document.getElementById('loginModal').classList.remove('active'); }
-        function checkPassword() { }
-        function toggleUpload() { }
-        function closeModal() { document.getElementById('modal').classList.remove('active'); }
-        function closeModalOnBackground(e) { if(e.target.id === 'modal') closeModal(); }
-
         window.addEventListener('scroll', () => {
             const header = document.getElementById('header');
             if(window.scrollY > 50) header.classList.add('scrolled');
             else header.classList.remove('scrolled');
-
             const intro = document.getElementById('projectsIntro');
             const rect = intro.getBoundingClientRect();
             if(rect.top < window.innerHeight * 0.8) intro.classList.add('visible');
