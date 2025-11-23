@@ -705,4 +705,47 @@ function isInTrainZone(clientX, clientY) {
     );
 }
 
+// ==========================================================
+// NOUVEAU CODE : SYNCHRONISATION VIDÉO AVEC LE SCROLL
+// ==========================================================
+
+const scrollVideo = document.getElementById('scrollAnimation');
+const videoSection = document.querySelector('.video-scroll-section');
+
+if (scrollVideo && videoSection) {
+    // Attendre que la vidéo soit prête (méta-données chargées)
+    scrollVideo.addEventListener('loadedmetadata', () => {
+        
+        function updateVideoScroll() {
+            // 1. Déterminer la position relative de la section vidéo
+            const rect = videoSection.getBoundingClientRect();
+
+            // La lecture commence quand le haut de la section arrive en haut de l'écran (rect.top = 0)
+            // La lecture se termine quand le bas de la section arrive en bas de l'écran (rect.bottom = window.innerHeight)
+            
+            // Hauteur totale de l'espace de défilement (ex: 400vh = 4 * window.innerHeight)
+            const scrollAreaHeight = videoSection.offsetHeight - window.innerHeight;
+            
+            // La position de défilement à l'intérieur de la zone (commence à 0 et va jusqu'à scrollAreaHeight)
+            let scrollPositionInArea = -rect.top;
+
+            // 2. Calculer la progression (entre 0 et 1)
+            let progress = scrollPositionInArea / scrollAreaHeight;
+
+            // Clamper la valeur entre 0 et 1
+            progress = Math.min(1, Math.max(0, progress));
+
+            // 3. Synchroniser la position de la vidéo
+            // video.duration est la durée totale de la vidéo en secondes.
+            scrollVideo.currentTime = scrollVideo.duration * progress;
+        }
+
+        // 4. Attacher l'événement de défilement
+        window.addEventListener('scroll', updateVideoScroll);
+
+        // 5. Exécuter une première fois
+        updateVideoScroll();
+    });
+}
+
 renderProjects();

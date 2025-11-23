@@ -577,4 +577,34 @@ header.scrolled .admin-btn:hover {
         height: 55px;
         font-size: 1.3rem;
     }
+
+/* SECTION DÉDIÉE À L'ANIMATION SCROLL */
+.video-scroll-section {
+    /* La hauteur de cette section détermine la durée du défilement. 
+       400vh signifie que le défilement doit couvrir 4 fois la hauteur de la fenêtre pour la traverser.
+       C'est cette hauteur qui va synchroniser votre animation !
+    */
+    height: 400vh;
+    position: relative;
+    z-index: 5; /* Assurez-vous d'être au-dessus de la section hero (z-index 10) */
+    background: #f5f5f5; /* Couleur de fond pour la transition vers les projets */
+}
+
+#scrollAnimation {
+    /* La vidéo est fixée à l'écran pendant le défilement de la section */
+    position: sticky; 
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100vh; /* La vidéo occupe 100% de la fenêtre visible */
+    object-fit: cover; 
+    z-index: 6; /* Doit être au-dessus du fond de section si besoin */
+}
+
+/* Ajustement pour la section projets pour s'assurer qu'elle commence après la section vidéo */
+.projects-section {
+    position: relative;
+    z-index: 10; /* Assurez-vous que le contenu des projets couvre bien la vidéo à la fin du scroll */
+    background: #f5f5f5; 
+}
 }
