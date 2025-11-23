@@ -6,6 +6,8 @@
     <title>Esther Marty — Portfolio</title>
     
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+    
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700;800;900&family=Cormorant+Garamond:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -21,7 +23,7 @@
         </div>
     </header>
 
-    <section class="hero-section">
+    <section class="hero-section" id="heroSection">
         <canvas id="canvas3d"></canvas>
         <div class="hero-content">
             <h1>
@@ -33,11 +35,9 @@
         <div class="scroll-indicator">SCROLL</div>
     </section>
 
-    <section class="video-scroll-section">
-        <video id="scrollAnimation" src="animation.mp4" preload="auto" muted playsinline width="100%" height="auto">
-            Votre navigateur ne supporte pas l'élément vidéo.
-        </video>
-    </section>
+    <section class="scroll-3d-animation-section" id="scroll3dSection">
+        </section>
+
     <section class="projects-section">
         <div class="projects-intro" id="projectsIntro">
             <h2>Projets</h2>
@@ -51,18 +51,16 @@
     <div class="modal-overlay" id="adminModal">
         <div class="modal">
             <button class="modal-close" id="closeModal">&times;</button>
-            
             <div class="pin-screen" id="pinScreen">
                 <h2>Code Admin</h2>
                 <div class="pin-input-container">
-                    <input type="password" maxlength="1" class="pin-input" data-index="0">
-                    <input type="password" maxlength="1" class="pin-input" data-index="1">
-                    <input type="password" maxlength="1" class="pin-input" data-index="2">
-                    <input type="password" maxlength="1" class="pin-input" data-index="3">
+                    <input type="password" maxlength="1" class="pin-input">
+                    <input type="password" maxlength="1" class="pin-input">
+                    <input type="password" maxlength="1" class="pin-input">
+                    <input type="password" maxlength="1" class="pin-input">
                 </div>
                 <div class="pin-error" id="pinError">Code incorrect</div>
             </div>
-
             <div class="admin-panel" id="adminPanel">
                 <h2>Ajouter un Projet</h2>
                 <form class="admin-form" id="projectForm">
