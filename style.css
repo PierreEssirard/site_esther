@@ -1,0 +1,78 @@
+/* ... (Code CSS précédent) ... */
+
+/* MODIFICATION CLÉ 1 : Centrer le contenu et utiliser Flexbox */
+.hero-section { 
+    position: relative; 
+    width: 100%; 
+    height: 100vh; 
+    background: #000; 
+    /* CHANGEMENT ICI: Utiliser Flexbox pour le centrage et la disposition */
+    display: flex; 
+    align-items: center; 
+    justify-content: center; /* Centré au milieu */
+    overflow: hidden; 
+}
+
+#canvas3d { 
+    position: absolute; 
+    left: 0; 
+    top: 0; 
+    width: 100%; 
+    height: 100%; 
+    display: block;
+    touch-action: none;
+    /* Le canvas reste en plein écran mais son contenu 3D sera ajusté */
+}
+
+/* MODIFICATION CLÉ 2 : Positionner le texte à droite (sans modifier l'alignement du texte lui-même) */
+.hero-content { 
+    position: relative; 
+    z-index: 10; 
+    text-align: right; /* Aligner le contenu (les H1 et P) à droite */
+    opacity: 0;
+    transform: scale(0.8);
+    animation: nameAppear 1.5s cubic-bezier(0.16, 1, 0.3, 1) forwards 2s;
+    
+    /* NOUVEAU: Marge pour décaler le texte vers la droite */
+    margin-left: auto; /* Pousse le contenu le plus à droite possible */
+    margin-right: 10vw; /* Laisse une marge à droite de l'écran */
+    max-width: 50%; /* S'assure qu'il n'occupe que la moitié droite de l'écran */
+}
+
+.hero-content h1 { 
+    /* ... (Reste du style Playfair Display) ... */
+    /* Assurez-vous que les spans sont toujours en 'block' */
+    font-size: clamp(4rem, 15vw, 12rem);
+    font-weight: 900;
+    line-height: 0.85;
+}
+
+.name-first { 
+    display: block;
+    /* ... (Style de couleur) ... */
+}
+
+.name-last { 
+    display: block;
+    /* ... (Style de couleur) ... */
+}
+
+.hero-content p { 
+    /* ... (Style de description) ... */
+    margin-top: 2rem;
+}
+
+/* ... (Reste du code CSS) ... */
+
+/* Media Queries pour les petits écrans */
+@media (max-width: 900px) {
+    /* ... (Styles précédents) ... */
+    
+    /* NOUVEAU sur mobile: centrer le texte pour une meilleure lecture */
+    .hero-content {
+        margin-left: 0;
+        margin-right: 0;
+        max-width: 100%;
+        text-align: center;
+    }
+}
