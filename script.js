@@ -7,6 +7,11 @@ scene.background = new THREE.Color(0x000000);
 const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
 
+// Configuration de l'espace colorimétrique du rendu
+renderer.outputColorSpace = THREE.SRGBColorSpace; 
+
+let hasExploded = false; // Ajouté ici pour la visibilité globale
+
 function setRendererToCanvasSize() {
     const width = window.innerWidth;
     const height = window.innerHeight;
@@ -17,15 +22,9 @@ function setRendererToCanvasSize() {
 }
 
 // Lumières
-const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
-scene.add(ambientLight);
-
-const light1 = new THREE.DirectionalLight(0xffffff, 1.2);
-light1.position.set(5, 5, 5);
-scene.add(light1);
-
-const light2 = new THREE.PointLight(0xf0c4df, 2, 10);
-scene.add(light2);
+const ambientLight = new THREE.AmbientLight(0xffffff, 1.5); // Plus forte
+const light1 = new THREE.DirectionalLight(0xffffff, 0.8); // Moins forte
+const light2 = new THREE.PointLight(0xffffff, 1.5, 10); // BLANCHE
 
 // ==========================================================
 // 1. GROUPES DE SCÈNE
@@ -46,7 +45,7 @@ scene.add(globalParticlesGroup);
 
 
 // ==========================================================
-// 2. PHASE 1 : TRAIN (INCHANGÉ)
+// 2. PHASE 1 : TRAIN 
 // ==========================================================
 const model = new THREE.Group();
 model.position.set(-4.5, 0, 0); 
@@ -117,8 +116,8 @@ let brushPath = null;
 let strokes = [];
 const brushState = { position: new THREE.Vector3(-10, 0, 0) };
 
-const loader = new THREE.FontLoader();
-loader.load('https://threejs.org/examples/fonts/helvetiker_regular.typeface.json', function (font) {
+const fontLoader = new THREE.FontLoader();
+fontLoader.load('https://threejs.org/examples/fonts/helvetiker_regular.typeface.json', function (font) {
     const textShape = font.generateShapes('Mes Projets', 1.8); 
     const geometry = new THREE.ShapeGeometry(textShape);
     geometry.computeBoundingBox();
@@ -191,8 +190,9 @@ loader.load('https://threejs.org/examples/fonts/helvetiker_regular.typeface.json
     phase2Group.position.y = -0.5; 
 });
 
+
 // ==========================================================
-// 4. PHASE 3 : CARROUSEL AUTOUR DU TEXTE "MES PROJETS"
+// 4. PHASE 3 : CARROUSEL (FINAL - SANS CADRE, COULEURS NEUTRES)
 // ==========================================================
 
 const imageFiles = [
@@ -202,57 +202,41 @@ const imageFiles = [
     '909b39b2-338e-49e9-9c33-1c1bdb240e30.jpeg',
     '982a3aef-2302-4db3-969f-507aaade59fe.jpeg',
     'b8dfc9dd-80f4-42ad-b159-b6d8c2e60b68.jpeg',
-    'BF2CAF69-68BE-4BF4-982z-24FEE1383FC4.jpeg'
+    'BF2CAF69-68BE-4BF4-9822-24FEE1383FC4.jpeg'
 ];
 
 const imageCarousel = [];
-const carouselRadius = 6; // Distance du centre (texte)
+const carouselRadius = 6;
 const textureLoader = new THREE.TextureLoader();
 
-// Raycaster pour la détection de survol
 const raycaster3 = new THREE.Raycaster();
 const mouse3D = new THREE.Vector2();
 let hoveredImage = null;
 let isPhase3Active = false;
 
-// Créer les cadres façon vieux papier
+// Créer les images du carrousel (SANS CADRE)
 imageFiles.forEach((filename, index) => {
-    const frameGroup = new THREE.Group();
+    const imagePlaneGroup = new THREE.Group(); 
     
-    // Cadre beige/crème style vieux papier
-    const frameThickness = 0.08;
-    const frameGeo = new THREE.BoxGeometry(2.4, 3.2, frameThickness);
-    const frameMat = new THREE.MeshStandardMaterial({ 
-        color: 0xf5e6d3, // Beige clair papier ancien
-        roughness: 0.8,
-        metalness: 0.1
-    });
-    const frame = new THREE.Mesh(frameGeo, frameMat);
-    frameGroup.add(frame);
+    // Photo plane
+    const photoWidth = 1.6; 
+    const photoHeight = 2.2; 
+    const photoGeo = new THREE.PlaneGeometry(photoWidth, photoHeight);
     
-    // Bordure dorée fine
-    const borderGeo = new THREE.BoxGeometry(2.5, 3.3, frameThickness + 0.01);
-    const borderMat = new THREE.MeshStandardMaterial({ 
-        color: 0xc9a961, // Or antique
-        roughness: 0.4,
-        metalness: 0.6
-    });
-    const border = new THREE.Mesh(borderGeo, borderMat);
-    border.position.z = -0.001;
-    frameGroup.add(border);
+    const photoMat = new THREE.MeshBasicMaterial({ 
+    side: THREE.DoubleSide,
+    transparent: true,
+    opacity: 1,
+    toneMapped: false // Couleurs brutes !
+});
     
-    // Photo avec ratio préservé
-    const photoGeo = new THREE.PlaneGeometry(2.0, 2.8);
-    const photoMat = new THREE.MeshStandardMaterial({ 
-        color: 0xffffff,
-        side: THREE.DoubleSide
-    });
-    
-    // Charger l'image SANS déformation
+    // Charger l'image
     textureLoader.load(
         `image_projets/${filename}`,
         (texture) => {
-            // Préserver le ratio de l'image
+            // Indiquer à Three.js que cette texture est en sRGB
+            texture.colorSpace = THREE.SRGBColorSpace; 
+
             texture.minFilter = THREE.LinearFilter;
             texture.magFilter = THREE.LinearFilter;
             
@@ -260,51 +244,55 @@ imageFiles.forEach((filename, index) => {
             photoMat.needsUpdate = true;
         },
         undefined,
-        () => {
-            // Fallback
+        (error) => {
+            console.error('Erreur lors du chargement de la texture:', filename, error);
             photoMat.color.set(0xf0c4df);
         }
     );
     
     const photo = new THREE.Mesh(photoGeo, photoMat);
-    photo.position.z = frameThickness / 2 + 0.01;
-    frameGroup.add(photo);
+    photo.receiveShadow = true;
+    imagePlaneGroup.add(photo);
     
-    // Position initiale sur le cercle (PLAN XZ horizontal)
+    // Position initiale
     const angle = (index / imageFiles.length) * Math.PI * 2;
     const x = Math.cos(angle) * carouselRadius;
     const z = Math.sin(angle) * carouselRadius;
     
-    frameGroup.userData = {
+    imagePlaneGroup.userData = {
         index: index,
         baseAngle: angle,
         currentAngle: angle,
-        homePosition: new THREE.Vector3(x, 0, z), // Y=0 pour rester autour du texte
+        homePosition: new THREE.Vector3(x, 0, z),
         targetPosition: new THREE.Vector3(x, 0, z),
         currentPosition: new THREE.Vector3(x, 0, z),
-        targetScale: 1,
-        currentScale: 0,
+        targetScale: 1, 
+        currentScale: 0, 
         isHovered: false,
         rotationLocked: false
     };
     
-    frameGroup.position.copy(frameGroup.userData.homePosition);
+    imagePlaneGroup.position.copy(imagePlaneGroup.userData.homePosition);
     
-    phase3Group.add(frameGroup);
-    imageCarousel.push(frameGroup);
+    phase3Group.add(imagePlaneGroup);
+    imageCarousel.push(imagePlaneGroup);
 });
 
-// Lumières
-const spotLight3 = new THREE.SpotLight(0xffffff, 2.5);
+// Lumières Phase 3
+// Correction : Lumières neutralisées et AMBIANTE PLUS PUISSANTE pour garantir la fidélité des couleurs
+const spotLight3 = new THREE.SpotLight(0xffffff, 4.0); // Lumière blanche principale (plus forte)
 spotLight3.position.set(0, 8, 5);
 spotLight3.angle = Math.PI / 4;
 spotLight3.penumbra = 0.6;
+spotLight3.castShadow = true;
+spotLight3.shadow.mapSize.width = 1024;
+spotLight3.shadow.mapSize.height = 1024;
 phase3Group.add(spotLight3);
 
-const ambientLight3 = new THREE.AmbientLight(0xffeedd, 0.7); // Lumière chaude
+const ambientLight3 = new THREE.AmbientLight(0xffffff, 1.2); // Lumière ambiante NEUTRE et FORTE
 phase3Group.add(ambientLight3);
 
-const fillLight3 = new THREE.DirectionalLight(0xffd700, 0.4);
+const fillLight3 = new THREE.DirectionalLight(0xffffff, 0.8); // Lumière d'appoint NEUTRE et FORTE
 fillLight3.position.set(-5, 3, -3);
 phase3Group.add(fillLight3);
 
@@ -322,25 +310,14 @@ function checkHoveredImage() {
     
     raycaster3.setFromCamera(mouse3D, camera);
     
-    const allMeshes = [];
-    imageCarousel.forEach(frame => {
-        frame.traverse(child => {
-            if (child.isMesh) allMeshes.push(child);
-        });
-    });
+    const allPhotoMeshes = imageCarousel.map(group => group.children[0]); 
     
-    const intersects = raycaster3.intersectObjects(allMeshes, false);
+    const intersects = raycaster3.intersectObjects(allPhotoMeshes, false);
     
     let newHoveredImage = null;
     
     if (intersects.length > 0) {
-        let object = intersects[0].object;
-        while (object.parent && !imageCarousel.includes(object)) {
-            object = object.parent;
-        }
-        if (imageCarousel.includes(object)) {
-            newHoveredImage = object;
-        }
+        newHoveredImage = intersects[0].object.parent; 
     }
     
     if (newHoveredImage !== hoveredImage) {
@@ -352,7 +329,7 @@ function checkHoveredImage() {
         hoveredImage = newHoveredImage;
         if (hoveredImage) {
             hoveredImage.userData.isHovered = true;
-            hoveredImage.userData.rotationLocked = true; // BLOQUER la rotation
+            hoveredImage.userData.rotationLocked = true;
             canvas.style.cursor = 'pointer';
         } else {
             canvas.style.cursor = 'default';
@@ -367,13 +344,12 @@ canvas.addEventListener('mousemove', checkHoveredImage);
 let carouselRotation = 0;
 
 function updateCarouselPhase3(transitionProgress) {
-    // Rotation SEULEMENT si aucune image n'est survolée
     if (!hoveredImage) {
         carouselRotation += 0.004;
     }
     
-    imageCarousel.forEach((frame, i) => {
-        const userData = frame.userData;
+    imageCarousel.forEach((imagePlaneGroup, i) => {
+        const userData = imagePlaneGroup.userData;
         
         // Apparition progressive
         if (transitionProgress < 1) {
@@ -382,45 +358,43 @@ function updateCarouselPhase3(transitionProgress) {
             userData.targetScale = 1;
         }
         
-        // Si image survolée : ARRÊTER et venir au premier plan
+        // Si image survolée : ARRÊTER la rotation et venir au premier plan
         if (userData.isHovered) {
-            // Position FIXE devant la caméra
-            userData.targetPosition.set(0, 0, 6); // Plus près de la caméra
-            userData.targetScale = 3.0; // Plus grande
+            userData.targetPosition.set(0, 0, 4);
+            userData.targetScale = 2.0; 
             
-            // Regarder directement la caméra
-            frame.lookAt(camera.position);
+            imagePlaneGroup.lookAt(camera.position);
             
         } else {
-            // Position sur le cercle qui tourne (PLAN HORIZONTAL)
+            // Position sur le cercle qui tourne
             if (!userData.rotationLocked) {
                 userData.currentAngle = userData.baseAngle + carouselRotation;
             }
             
             const x = Math.cos(userData.currentAngle) * carouselRadius;
             const z = Math.sin(userData.currentAngle) * carouselRadius;
-            userData.homePosition.set(x, 0, z); // Y = 0 (plan horizontal)
+            userData.homePosition.set(x, 0, z); 
             
             userData.targetPosition.copy(userData.homePosition);
             userData.targetScale = transitionProgress >= 1 ? 1 : transitionProgress;
             
-            // Regarder le centre (texte "Mes Projets")
+            // Regarder le centre (où serait le texte "Mes Projets")
             const lookTarget = new THREE.Vector3(0, 0, 0);
             const targetQuat = new THREE.Quaternion();
-            const currentQuat = frame.quaternion.clone();
+            const currentQuat = imagePlaneGroup.quaternion.clone();
             
-            frame.lookAt(lookTarget);
-            targetQuat.copy(frame.quaternion);
-            frame.quaternion.copy(currentQuat);
-            frame.quaternion.slerp(targetQuat, 0.1);
+            imagePlaneGroup.lookAt(lookTarget);
+            targetQuat.copy(imagePlaneGroup.quaternion);
+            imagePlaneGroup.quaternion.copy(currentQuat);
+            imagePlaneGroup.quaternion.slerp(targetQuat, 0.1);
         }
         
         // Interpolation ULTRA-DOUCE
         userData.currentPosition.lerp(userData.targetPosition, 0.15);
-        frame.position.copy(userData.currentPosition);
+        imagePlaneGroup.position.copy(userData.currentPosition);
         
         userData.currentScale += (userData.targetScale - userData.currentScale) * 0.15;
-        frame.scale.setScalar(userData.currentScale);
+        imagePlaneGroup.scale.setScalar(userData.currentScale);
     });
 }
 
@@ -430,9 +404,9 @@ window.setPhase3Active = (active) => {
     if (!active) {
         hoveredImage = null;
         canvas.style.cursor = 'default';
-        imageCarousel.forEach(frame => {
-            frame.userData.isHovered = false;
-            frame.userData.rotationLocked = false;
+        imageCarousel.forEach(group => {
+            group.userData.isHovered = false;
+            group.userData.rotationLocked = false;
         });
     }
 };
@@ -481,7 +455,7 @@ function createFallingCube() {
 }
 
 // ==========================================================
-// 6. SETUP & LOGIQUE GÉNÉRALE
+// 6. SETUP & LOGIQUE GÉNÉRALE (INCHANGÉE)
 // ==========================================================
 function adjustCameraForScreen() {
     const w = window.innerWidth;
@@ -492,7 +466,7 @@ setRendererToCanvasSize();
 adjustCameraForScreen(); 
 window.addEventListener('resize', () => { setRendererToCanvasSize(); adjustCameraForScreen(); });
 
-let trainProgress = 0; let currentSpeed = 0.0012; let isAccelerating = false; let fastLapCount = 0; let hasExploded = false; let particles = []; let fallingCubes = []; let haussmannBuilding = null; let lapStarted = false;
+let trainProgress = 0; let currentSpeed = 0.0012; let isAccelerating = false; let fastLapCount = 0; let particles = []; let fallingCubes = []; let haussmannBuilding = null; let lapStarted = false;
 
 const raycaster = new THREE.Raycaster(); 
 const mouse = new THREE.Vector2(); 
@@ -560,7 +534,7 @@ function explodeTrain() {
 }
 
 // ==========================================================
-// 7. BOUCLE D'ANIMATION PRINCIPALE - CORRIGÉE
+// 7. BOUCLE D'ANIMATION PRINCIPALE
 // ==========================================================
 function animate() {
     requestAnimationFrame(animate);
@@ -571,13 +545,11 @@ function animate() {
     const carouselSection = document.getElementById('carouselScrollSection');
     const heroContent = document.querySelector('.hero-content');
     
+    // Facteurs de transition
     let phase1to2Transition = Math.max(0, Math.min(1, (scrollY - (heroHeight * 0.1)) / (heroHeight * 0.9)));
     
     const scroll3dHeight = scroll3dSection ? scroll3dSection.offsetHeight : 0;
-    const carouselHeight = carouselSection ? carouselSection.offsetHeight : 0;
-    const phase2Start = heroHeight;
-    const phase2End = phase2Start + scroll3dHeight;
-    const phase3Start = phase2End;
+    const phase2End = heroHeight + scroll3dHeight;
     
     let phase2to3Transition = 0;
     if (scrollY > phase2End - heroHeight) {
@@ -607,13 +579,15 @@ function animate() {
                 lapStarted = false; 
                 fastLapCount = 0; 
             }
-            wagonGroup.children.forEach(w => { 
-                const t = (trainProgress + w.userData.offset) % 1; 
-                const pos = circleCurve.getPoint(t); 
-                const tan = circleCurve.getTangent(t); 
-                w.position.copy(pos); 
-                w.rotation.z = Math.atan2(tan.y, tan.x); 
-            });
+            if (wagonGroup.children.length > 0) {
+                 wagonGroup.children.forEach(w => { 
+                    const t = (trainProgress + w.userData.offset) % 1; 
+                    const pos = circleCurve.getPoint(t); 
+                    const tan = circleCurve.getTangent(t); 
+                    w.position.copy(pos); 
+                    w.rotation.z = Math.atan2(tan.y, tan.x); 
+                });
+            }
         } else {
             for (let i = particles.length - 1; i >= 0; i--) { 
                 let p = particles[i]; 
@@ -657,7 +631,7 @@ function animate() {
     }
 
     // --- PHASE 2 : PINCEAU ---
-    if (phase1to2Transition > 0) {
+    if (phase1to2Transition > 0 && scroll3dSection) { 
         phase2Group.visible = true;
         
         camera.position.set(0, 0, 10);
@@ -695,7 +669,7 @@ function animate() {
             light2.position.z += 1;
         }
         
-        // Pas de fade du texte - il reste visible en Phase 3
+        // FADE OUT du pinceau AVANT la phase 3
         if (phase2to3Transition > 0 && phase2to3Transition < 0.3) {
             const phase2Opacity = 1 - (phase2to3Transition / 0.3);
             paintBrush.traverse(o => {
@@ -704,44 +678,39 @@ function animate() {
                     o.material.opacity = phase2Opacity;
                 }
             });
+            strokes.forEach(s => { s.mesh.material.opacity = phase2Opacity; });
         } else if (phase2to3Transition >= 0.3) {
             paintBrush.visible = false;
+        } else {
+            // S'assurer que le texte est opaque quand il est visible
+            strokes.forEach(s => { s.mesh.material.opacity = 1; });
         }
 
     } else { 
         phase2Group.visible = false; 
     }
     
-    // --- PHASE 3 : CARROUSEL AUTOUR DU TEXTE ---
+    // --- PHASE 3 : CARROUSEL ---
     if (phase2to3Transition > 0.2) {
         phase3Group.visible = true;
         
-        if (window.setPhase3Active) {
-            window.setPhase3Active(true);
-        }
+        if (window.setPhase3Active) { window.setPhase3Active(true); }
         
         camera.position.set(0, 0, 10);
         camera.lookAt(0, 0, 0);
         
         const phase3Progress = Math.min(1, (phase2to3Transition - 0.2) / 0.8);
         
-        if (window.updateCarouselPhase3) {
-            window.updateCarouselPhase3(phase3Progress);
+        if (window.updateCarouselPhase3) { window.updateCarouselPhase3(phase3Progress); }
+        
+        // GARDER "Mes Projets" COMPLÈTEMENT VISIBLE ET STATIQUE
+        if (phase2Group.visible) {
+             strokes.forEach(s => { s.mesh.material.opacity = 1; });
         }
-        
-        // GARDER "Mes Projets" COMPLÈTEMENT VISIBLE
-        strokes.forEach(s => {
-            if (s.mesh.material) {
-                s.mesh.material.opacity = 1; // Toujours visible
-            }
-        });
-        
+
     } else {
         phase3Group.visible = false;
-        
-        if (window.setPhase3Active) {
-            window.setPhase3Active(false);
-        }
+        if (window.setPhase3Active) { window.setPhase3Active(false); }
     }
     
     if (heroContent) {
@@ -749,8 +718,7 @@ function animate() {
     }
     
     renderer.render(scene, camera);
-}
-animate();
+} // FIN DE LA FONCTION ANIMATE
 
 // --- EVENTS ---
 window.addEventListener('scroll', () => {
@@ -762,12 +730,10 @@ window.addEventListener('scroll', () => {
     const scroll3dEnd = heroHeight + (scroll3dSection ? scroll3dSection.offsetHeight : 0);
     const carouselEnd = scroll3dEnd + (carouselSection ? carouselSection.offsetHeight : 0);
     
-    if (scrollY > carouselEnd - 200) {
+    // Logique Header pour la phase 2/3
+    if (scrollY > scroll3dEnd + 50) { 
         h.classList.add('scrolled'); 
         h.classList.remove('phase2-header');
-    } else if (scrollY > scroll3dEnd - 100) { 
-        h.classList.add('phase2-header'); 
-        h.classList.remove('scrolled'); 
     } else if (scrollY > heroHeight - 100) { 
         h.classList.add('phase2-header'); 
         h.classList.remove('scrolled'); 
@@ -792,3 +758,6 @@ if (adminBtn) {
     adminBtn.addEventListener('click', () => adminModal.classList.add('active')); 
     closeModal.addEventListener('click', () => adminModal.classList.remove('active')); 
 }
+
+// LIGNE CRUCIALE : DÉCLENCHEMENT DE L'ANIMATION
+animate();
