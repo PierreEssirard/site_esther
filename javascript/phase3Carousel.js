@@ -1,7 +1,7 @@
 // javascript/phase3Carousel.js
 
 let imageCarousel = [];
-const carouselRadius = 9; 
+const carouselRadius = 5; 
 const imageFiles = [
     'P1.jpeg', 'P2.jpeg', 'P3.jpeg', 'P4.jpeg', 
     'P5.jpeg', 'P6.jpeg', 'P7.jpeg'
@@ -13,6 +13,7 @@ export const mouse3D = new THREE.Vector2();
 let hoveredImage = null;
 let isPhase3Active = false;
 let carouselRotation = 0;
+let isImageZoomed = false;
 
 // Variables pour le bandeau d'images
 const imageBandFiles = ['1.jpeg', '2.jpeg', '3.jpeg', '4.jpeg', '5.jpeg'];
@@ -26,9 +27,11 @@ const numFiles = imageBandFiles.length;
 const bandSegmentWidth = (imageBandWidth + bandSpacing) * numFiles;
 const numCopies = 4;
 const bandVerticalOffset = 9.0;
+const CAROUSEL_VERTICAL_OFFSET = 1; // DÉCALAGE Y : Valeur négative pour descendre
+const CAROUSEL_DEPTH_OFFSET = 0.0;    // DÉCALAGE Z : Valeur négative pour rapprocher
 
 // === CONSTANTES D'ONDES POUR LE BANDEAU ===
-const WAVE_AMPLITUDE = 0.4;
+const WAVE_AMPLITUDE = 0.1;
 const WAVE_FREQUENCY = 0.5;
 const WAVE_SPEED = 1.0;
 
@@ -101,8 +104,8 @@ export function initPhase3(phase3Group) {
     phase3Group.add(fillLight3);
 
     // Carrousel d'images
-    const photoWidth = 1.6; // Largeur de base de la photo
-    const photoHeight = 2.2; // Hauteur de base de la photo
+    const photoWidth = 2.2; // Largeur de base de la photo
+    const photoHeight = 3; // Hauteur de base de la photo
     
     imageFiles.forEach((filename, index) => {
         const imagePlaneGroup = new THREE.Group(); 
@@ -197,8 +200,10 @@ export function checkHoveredImage(camera, canvas) {
             hoveredImage.userData.isHovered = true;
             hoveredImage.userData.rotationLocked = false; 
             canvas.style.cursor = 'pointer';
+            isImageZoomed = true;
         } else {
             canvas.style.cursor = 'default';
+            isImageZoomed = false;
         }
     }
 }
@@ -208,14 +213,18 @@ export function checkHoveredImage(camera, canvas) {
 // ==========================================================
 
 export function updateCarouselPhase3(transitionProgress, camera) {
-    carouselRotation += 0.004; 
+    // 1. Arrêter la rotation si une image est survolée
+    if (!hoveredImage) { 
+        carouselRotation += 0.004; 
+    }
     
-    const identityQuaternion = new THREE.Quaternion(); 
-
+    const identityQuaternion = new THREE.Quaternion();
+    
     imageCarousel.forEach((imagePlaneGroup) => {
         const userData = imagePlaneGroup.userData;
         const photoMaterial = imagePlaneGroup.children[0].material; 
 
+        // 2. Gestion globale de la mise à l'échelle d'apparition (de 0 à 1)
         if (transitionProgress < 1) {
             userData.targetScale = transitionProgress;
         } else {
@@ -223,7 +232,9 @@ export function updateCarouselPhase3(transitionProgress, camera) {
         }
         
         if (userData.isHovered) {
-            // --- Calcul dynamique de l'échelle ---
+            // --- LOGIQUE DE SURVOL (ZOOM) ---
+            
+            // Calcul dynamique de l'échelle (conservé)
             const D = 6.0; 
             const paddingFactor = 0.90; 
 
@@ -239,8 +250,8 @@ export function updateCarouselPhase3(transitionProgress, camera) {
 
             userData.targetScale = Math.min(scaleFactorW, scaleFactorH);
             
-            // MODIFICATION CLÉ : Position Y ajustée à -1.5
-            userData.targetPosition.set(0, -1.8, 4); 
+            // Position Y ajustée à -1.8, Z fixé à 4 (pour être devant la caméra)
+            userData.targetPosition.set(0, -0.3, 4); 
             
             imagePlaneGroup.rotation.set(0, 0, 0); 
 
@@ -249,20 +260,53 @@ export function updateCarouselPhase3(transitionProgress, camera) {
             photoMaterial.transparent = false; 
 
         } else {
-            // Logique de rotation et position du carrousel
-            if (!userData.rotationLocked) {
-                userData.currentAngle = userData.baseAngle + carouselRotation;
-            }
+            // --- LOGIQUE NORMALE DU CARROUSEL (Inclut le Vortex) ---
             
-            const x = Math.cos(userData.currentAngle) * carouselRadius;
-            const z = Math.sin(userData.currentAngle) * carouselRadius;
-            userData.homePosition.set(x, 0, z); 
-            
-            userData.targetPosition.copy(userData.homePosition);
-            userData.targetScale = transitionProgress >= 1 ? 1 : transitionProgress;
+            if (transitionProgress < 1) {
+                // 3. ÉTAT VORTEX (Apparition progressive depuis le centre)
+                const t = transitionProgress; 
+                
+                // Rotation de vortex: L'image tourne en apparaissant (4 tours au début)
+                imagePlaneGroup.rotation.y = (1 - t) * Math.PI * 4; 
+                
+                // Position: Ramp up from center (0,0,0) to final resting position
+                const x_final = Math.cos(userData.baseAngle) * carouselRadius;
+                const z_final = Math.sin(userData.baseAngle) * carouselRadius;
+                
+                // La position finale est atteinte progressivement
+                userData.homePosition.set(
+                    x_final * t, 
+                    CAROUSEL_VERTICAL_OFFSET * t, // Applique l'offset Y progressivement
+                    z_final * t + CAROUSEL_DEPTH_OFFSET * t // Applique l'offset Z progressivement
+                );
 
-            // Interpolation vers la rotation Y=0 (Face-On)
-            imagePlaneGroup.quaternion.slerp(identityQuaternion, 0.1);
+                userData.targetPosition.copy(userData.homePosition);
+                
+            } else {
+                // 3. ÉTAT NORMAL DU CARROUSEL (Rotation active)
+
+                if (!userData.rotationLocked) {
+                    userData.currentAngle = userData.baseAngle + carouselRotation;
+                }
+                
+                const x = Math.cos(userData.currentAngle) * carouselRadius;
+                const z = Math.sin(userData.currentAngle) * carouselRadius;
+                
+                // Application des offsets Y et Z pour la position de repos
+                userData.homePosition.set(x, 
+                                          CAROUSEL_VERTICAL_OFFSET, // Utilisation de l'offset Y
+                                          z + CAROUSEL_DEPTH_OFFSET); // Utilisation de l'offset Z
+                
+                userData.targetPosition.copy(userData.homePosition);
+                userData.targetScale = transitionProgress >= 1 ? 1 : transitionProgress;
+
+                // Réinitialisation de la rotation après le vortex
+                imagePlaneGroup.rotation.y = 0; 
+
+                // Interpolation vers la rotation Y=0 (Face-On)
+                imagePlaneGroup.quaternion.slerp(identityQuaternion, 0.1);
+            }
+
 
             // Écraser les rotations X et Z pour une verticalité parfaite
             imagePlaneGroup.rotation.x = 0;
@@ -278,11 +322,11 @@ export function updateCarouselPhase3(transitionProgress, camera) {
             }
         }
         
-        // Mise à jour douce de la position et de l'échelle
-        userData.currentPosition.lerp(userData.targetPosition, 0.15);
+        // 4. Mise à jour douce de la position et de l'échelle (LERP 0.05 pour la fluidité)
+        userData.currentPosition.lerp(userData.targetPosition, 0.05);
         imagePlaneGroup.position.copy(userData.currentPosition);
         
-        userData.currentScale += (userData.targetScale - userData.currentScale) * 0.15;
+        userData.currentScale += (userData.targetScale - userData.currentScale) * 0.05;
         imagePlaneGroup.scale.setScalar(userData.currentScale);
         
         // Mettre à jour la propriété renderOrder pour que l'image survolée soit toujours devant

@@ -10,19 +10,34 @@ const brushState = { position: new THREE.Vector3(-10, 0, 0) };
  */
 function createPaintbrush() {
     const brushGroup = new THREE.Group();
-    const handle = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.08, 2.2, 16), new THREE.MeshStandardMaterial({ color: 0x333333, roughness: 0.5 }));
-    handle.position.y = 1.1; brushGroup.add(handle);
-    const ferrule = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.06, 0.4, 16), new THREE.MeshStandardMaterial({ color: 0xd4af37, metalness: 0.8, roughness: 0.2 }));
-    ferrule.position.y = 0.0; brushGroup.add(ferrule);
-    const bristles = new THREE.Mesh(new THREE.ConeGeometry(0.06, 0.5, 16), new THREE.MeshStandardMaterial({ color: 0xf0c4df }));
-    bristles.position.y = -0.45; bristles.rotation.x = Math.PI; brushGroup.add(bristles);
+    const handle = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.06, 0.08, 2.2, 16), 
+        new THREE.MeshStandardMaterial({ color: 0x333333, roughness: 0.5 })
+    );
+    handle.position.y = 1.1; 
+    brushGroup.add(handle);
+    
+    const ferrule = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.08, 0.06, 0.4, 16), 
+        new THREE.MeshStandardMaterial({ color: 0xd4af37, metalness: 0.8, roughness: 0.2 })
+    );
+    ferrule.position.y = 0.0; 
+    brushGroup.add(ferrule);
+    
+    const bristles = new THREE.Mesh(
+        new THREE.ConeGeometry(0.06, 0.5, 16), 
+        new THREE.MeshStandardMaterial({ color: 0xf0c4df })
+    );
+    bristles.position.y = -0.45; 
+    bristles.rotation.x = Math.PI; 
+    brushGroup.add(bristles);
+    
     brushGroup.rotation.x = -Math.PI / 4; 
     return brushGroup;
 }
 
-
 /**
- * Initialise le pinceau et charge le texte "Mes Projets" en courbes 3D.
+ * Initialise le pinceau et charge le texte "Mes dessins" en courbes 3D.
  * @param {THREE.Group} phase2Group
  */
 export function initPhase2(phase2Group) {
@@ -30,8 +45,8 @@ export function initPhase2(phase2Group) {
     phase2Group.add(paintBrush);
 
     const fontLoader = new THREE.FontLoader();
-    fontLoader.load('https://threejs.org/examples/fonts/helvetiker_regular.typeface.json', function (font) {
-        const textShape = font.generateShapes('Mes Projets', 1.8); 
+    fontLoader.load('https://threejs.org/examples/fonts/gentilis_bold.typeface.json', function (font) {
+        const textShape = font.generateShapes('Mes dessins', 3.5); 
         const geometry = new THREE.ShapeGeometry(textShape);
         geometry.computeBoundingBox();
         const xMin = geometry.boundingBox.min.x;
@@ -47,11 +62,10 @@ export function initPhase2(phase2Group) {
         const globalPathPoints = [];
         let currentLength = 0;
         
-        const paintMat = new THREE.MeshStandardMaterial({ 
-            color: 0xf0c4df, 
-            emissive: 0xf0c4df, emissiveIntensity: 0.5,
-            roughness: 0.3, metalness: 0.1,
-            transparent: true, opacity: 1,
+        const paintMat = new THREE.MeshBasicMaterial({ 
+            color: 0xf0c4df,
+            transparent: true, 
+            opacity: 1,
             side: THREE.DoubleSide
         });
 
@@ -100,11 +114,9 @@ export function initPhase2(phase2Group) {
                 s.endP = s.endDist / totalPathLength;
             });
         }
-        // >>> MODIFICATION ICI : Déplace la Phase 2 plus haut
-        phase2Group.position.y = 1.0; 
+        phase2Group.position.y = -1; 
     });
 }
-
 
 /**
  * Met à jour le dessin du pinceau en fonction de la progression du scroll.
@@ -144,9 +156,18 @@ export function updatePhase2(scrollProgress, phase2to3Transition, light2) {
         light2.position.z += 1;
     }
     
-    // 4. Fade Out du pinceau avant la phase 3
-    if (phase2to3Transition > 0 && phase2to3Transition < 0.3) {
-        const phase2Opacity = 1 - (phase2to3Transition / 0.3);
+    // 4. Effet vortex de transition vers Phase 3
+    if (phase2to3Transition > 0) {
+        const t = Math.min(1, phase2to3Transition);
+        
+        // Vortex: rotation, retrait en Z, et réduction de taille
+        paintBrush.parent.rotation.y = t * Math.PI * 4; 
+        paintBrush.parent.scale.setScalar(1 - t);       
+        paintBrush.parent.position.z = t * 5;           
+        
+        // Contrôle de l'opacité
+        const phase2Opacity = 1 - t;
+        
         paintBrush.traverse(o => {
             if (o.material) {
                 o.material.transparent = true;
@@ -154,10 +175,17 @@ export function updatePhase2(scrollProgress, phase2to3Transition, light2) {
             }
         });
         strokes.forEach(s => { s.mesh.material.opacity = phase2Opacity; });
-    } else if (phase2to3Transition >= 0.3) {
-        if (paintBrush) paintBrush.visible = false;
-        strokes.forEach(s => { s.mesh.material.opacity = 1; });
+        
+        if (t >= 1) {
+            if (paintBrush) paintBrush.visible = false;
+            paintBrush.parent.visible = false;
+        }
+
     } else {
+        // État normal
+        paintBrush.parent.rotation.y = 0;
+        paintBrush.parent.scale.setScalar(1);
+        paintBrush.parent.position.z = 0;
         if (paintBrush) paintBrush.visible = true;
         strokes.forEach(s => { s.mesh.material.opacity = 1; });
     }
