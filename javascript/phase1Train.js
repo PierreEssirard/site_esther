@@ -48,7 +48,7 @@ let modelLoadPromise = null;
 
 function createParticle(position, velocity) { 
     const size = Math.random() * 0.3 + 0.1;
-    const colors = [0xa8d0ff, 0xf0c4df, 0xfff1a8]; 
+    const colors = [0xb00404, 0x052d9c, 0xdde33d]; 
     const particle = new THREE.Mesh(
         new THREE.BoxGeometry(size, size, size), 
         new THREE.MeshBasicMaterial({ 
@@ -227,14 +227,14 @@ export function explodeTrain(phase1Group) {
         loadedModel.visible = false;
     }
     
-    const explosionPosition = loadedModel ? modelContainer.position : new THREE.Vector3(-6, 0, 0);
+    const explosionPosition = loadedModel ? modelContainer.position : new THREE.Vector3(5, 0, 0);
     
     // Création des particules
-    for (let i = 0; i < 500; i++) {
+    for (let i = 0; i < 600; i++) {
         const v = new THREE.Vector3(
-            (Math.random()-0.5)*8, 
-            (Math.random()-0.5)*8, 
-            (Math.random()-0.5)*8
+            (Math.random()-0.5)*2, 
+            (Math.random()-0.5)*2, 
+            (Math.random()-0.5)*2
         );
         const p = createParticle(explosionPosition, v); 
         particles.push(p); 
@@ -328,9 +328,9 @@ export function updatePhase1(phase1Group, globalParticlesGroup, fallingCubes) {
             const cubeMesh = haussmannBuilding.children.find(child => child.userData.isRotating);
             
             if (cubeMesh) {
-                cubeMesh.rotation.y += 0.001; 
-                cubeMesh.rotation.x += 0.003;
-                cubeMesh.rotation.z += 0.003;
+                cubeMesh.rotation.y += 0.005; 
+                cubeMesh.rotation.x += 0.008;
+                cubeMesh.rotation.z += 0.0008;
             }
         }
     }
