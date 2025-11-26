@@ -97,8 +97,8 @@ scene.add(light1);
 const light2 = new THREE.PointLight(0xffffff, 1.5, 10);
 scene.add(light2);
 
-// Détermine l'offset Z pour reculer la caméra dans les phases 2 et 3 sur mobile
-const MOBILE_Z_OFFSET = window.innerWidth <= 480 ? 1.5 : 0; 
+// MODIFICATION: Augmentation de l'offset Z pour reculer davantage la caméra sur mobile dans les phases 2 et 3
+const MOBILE_Z_OFFSET = window.innerWidth <= 480 ? 3.0 : 0; 
 
 // ==========================================================
 // 2. GROUPES DE SCÈNE
@@ -215,7 +215,10 @@ if (!isMobile) {
     }); 
 } else { 
     // CORRECTION SCROLL/TOUCH: Permettre le défilement vertical sur le canvas
-    canvas.style.touchAction = 'pan-y'; 
+    // (Ajout d'une vérification pour éviter les erreurs si canvas est null)
+    if (canvas) {
+        canvas.style.touchAction = 'pan-y';
+    } 
     
     canvas.addEventListener('touchstart', (e) => { 
         if (hasExploded) return; 
@@ -305,7 +308,7 @@ function animate() {
     if (phase1to2Transition < 1) {
         targetColor.lerpColors(COLOR_PHASE1, COLOR_PHASE2, phase1to2Transition);
     } else if (phase2to3Transition < 1) {
-        targetColor.lerpColors(COLOR_PHASE2, COLOR_PHASE3, phase2to3Transition);
+        targetColor.lerpColors(COLOR_PHASE2, COLOR_PHASE3, phase1to2Transition);
     } else {
         targetColor = COLOR_PHASE3;
     }
@@ -362,7 +365,7 @@ function animate() {
     if (phase1to2Transition > 0 && scroll3dSection) { 
         phase2Group.visible = true;
         
-        // MODIFICATION : Utiliser l'offset Z pour le mobile
+        // MODIFICATION : Utiliser l'offset Z augmenté pour le mobile
         camera.position.set(0, 0, 10 + MOBILE_Z_OFFSET); 
         camera.lookAt(0, 0, 0);
 
@@ -388,7 +391,7 @@ function animate() {
         
         setPhase3Active(true, canvas);
         
-        // MODIFICATION : Utiliser l'offset Z pour le mobile
+        // MODIFICATION : Utiliser l'offset Z augmenté pour le mobile
         camera.position.set(0, 0, 10 + MOBILE_Z_OFFSET);
         camera.lookAt(0, 0, 0);
         
