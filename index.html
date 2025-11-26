@@ -81,6 +81,9 @@
                     <button class="tab-button active" data-tab="dashboard">
                         <i class="fas fa-rocket"></i> Dashboard
                     </button>
+                    <button class="tab-button" data-tab="carousel-manager">
+                        <i class="fas fa-camera-retro"></i> Gestion Carrousel
+                    </button>
                     <button class="tab-button" data-tab="add-project">
                         <i class="fas fa-plus-circle"></i> Ajouter Projet
                     </button>
@@ -105,6 +108,36 @@
                             <i class="fas fa-pencil-ruler"></i>
                             <p>Dernière Mise à Jour : <span>Aujourd'hui</span></p>
                         </div>
+                    </div>
+                </div>
+
+                <!-- NOUVEL ONGLET : GESTION CARROUSEL -->
+                <div class="tab-content" id="carousel-manager" style="display:none;">
+                    <h3>Gestion des Images du Carrousel 3D</h3>
+                    <div id="carouselManager">
+                        <p style="margin-bottom: 15px;">
+                            <strong>Ajouter une image :</strong> Elle sera sauvegardée localement et ajoutée au carrousel au prochain chargement de la page.
+                        </p>
+                        <div class="form-group file-upload" style="border: 1px solid #ddd; padding: 15px; border-radius: 5px;">
+                            <label for="imageFileInput" class="file-label" style="background: #e9ecef; color: #333; cursor: pointer; padding: 8px 15px; border-radius: 4px; display: inline-block;">
+                                <i class="fas fa-cloud-upload-alt"></i> Choisir Fichier Image
+                            </label>
+                            <!-- NOTE: L'ID ici est crucial et est utilisé dans adminManager.js -->
+                            <input type="file" id="imageFileInput" accept="image/*" style="display: none;">
+                            <span id="fileNameDisplay" style="margin-left: 10px; font-style: italic; color: #555;">(Max 15 images admin)</span>
+                        </div>
+                        
+                        <hr style="margin-top: 25px; margin-bottom: 25px;">
+                        
+                        <h4>Images Ajoutées par l'Administrateur</h4>
+                        <p style="font-size: 0.9em; color: #888; margin-bottom: 15px;">
+                            Les images ci-dessous sont stockées localement. Supprimez-les si vous ne voulez plus qu'elles apparaissent dans le carrousel.
+                        </p>
+                        <!-- NOTE: L'ID ici est crucial et est utilisé dans adminManager.js pour le rendu de la liste -->
+                        <ul id="adminImageList" style="list-style: none; padding: 0;">
+                            <!-- La liste d'images (avec aperçu et bouton supprimer) sera rendue ici par adminManager.js -->
+                            <li>Chargement de la liste...</li>
+                        </ul>
                     </div>
                 </div>
 
@@ -160,13 +193,26 @@
 
                     // Activer l'onglet cliqué et le contenu correspondant
                     tab.classList.add('active');
-                    document.getElementById(targetId).style.display = 'block';
+                    const targetContent = document.getElementById(targetId);
+                    if (targetContent) {
+                        targetContent.style.display = 'block';
+                    }
+                    
+                    // Si l'onglet de gestion du carrousel est activé, mettez à jour l'affichage
+                    if (targetId === 'carousel-manager') {
+                        // Comme initCarouselManager est appelé dans adminManager.js, 
+                        // nous allons juste forcer le rafraîchissement si la logique est déjà chargée.
+                        // La logique de rafraîchissement est gérée par l'observateur dans adminManager.js 
+                        // lorsque le panneau devient visible.
+                    }
                 });
             });
             
             // Logique de prévisualisation d'image (pour l'onglet Ajouter Projet)
             const projectImageInput = document.getElementById('projectImage');
             const imagePreview = document.getElementById('imagePreview');
+            const imageFileInput = document.getElementById('imageFileInput');
+            const fileNameDisplay = document.getElementById('fileNameDisplay');
             
             if (projectImageInput && imagePreview) {
                 projectImageInput.addEventListener('change', function() {
@@ -181,6 +227,17 @@
                     } else {
                         imagePreview.src = '#';
                         imagePreview.style.display = 'none';
+                    }
+                });
+            }
+
+            // Affichage du nom de fichier pour la gestion du carrousel
+            if (imageFileInput && fileNameDisplay) {
+                imageFileInput.addEventListener('change', function() {
+                    if (this.files.length > 0) {
+                        fileNameDisplay.textContent = this.files[0].name;
+                    } else {
+                        fileNameDisplay.textContent = '(Max 15 images admin)';
                     }
                 });
             }

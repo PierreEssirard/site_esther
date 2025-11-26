@@ -1,4 +1,7 @@
-// phase3Carousel.js - VERSION OPTIMISÉE AVEC PRELOADER
+// phase3Carousel.js - VERSION OPTIMISÉE AVEC PRÉLOADER
+
+// NOUVEAU: Import pour récupérer les images admin
+import { getAdminImages } from './adminManager.js';
 
 let imageCarousel = [];
 const carouselRadius = 5; 
@@ -47,12 +50,36 @@ const isMobile = /Android|webOS|iPhone|iPad|IEMobile|Opera Mini/i.test(navigator
 // ==========================================================
 
 /**
- * Précharge toutes les textures du carrousel
+ * Précharge toutes les textures du carrousel (y compris celles de l'admin)
  */
 export function preloadCarouselTextures() {
     const promises = [];
     
-    // Précharger les images du carrousel
+    // 1. Récupérer les images admin (Base64)
+    const adminImages = getAdminImages();
+    
+    // 2. Déterminer toutes les sources à charger (fichiers + Base64)
+    const allImageSources = [...imageFiles]; // Fichiers de base
+    
+    adminImages.forEach((base64String, index) => {
+        // Clé unique pour les textures Base64
+        const adminKey = `admin_${index}`;
+        // Ajouter la clé à la liste, mais on chargera Base64 directement
+        allImageSources.push(adminKey); 
+
+        const promise = new Promise((resolve) => {
+            // Charger la texture à partir de l'URI Base64
+            textureLoader.load(base64String, (texture) => {
+                texture.colorSpace = THREE.SRGBColorSpace;
+                texture.minFilter = THREE.LinearFilter;
+                preloadedTextures[adminKey] = texture;
+                resolve();
+            });
+        });
+        promises.push(promise);
+    });
+
+    // Précharger les images de base (fichiers)
     imageFiles.forEach(filename => {
         const promise = new Promise((resolve, reject) => {
             const path = `image_projets/${filename}`;
@@ -74,7 +101,7 @@ export function preloadCarouselTextures() {
         promises.push(promise);
     });
     
-    // Précharger les images du bandeau
+    // Précharger les images du bandeau (inchangé)
     imageBandFiles.forEach(filename => {
         const promise = new Promise((resolve, reject) => {
             const path = `image_bandeau/${filename}`;
@@ -98,7 +125,7 @@ export function preloadCarouselTextures() {
     
     return Promise.all(promises).then(() => {
         texturesLoaded = true;
-        console.log('Toutes les textures Phase 3 sont chargées');
+        console.log('Toutes les textures Phase 3 sont chargées (y compris admin)');
     });
 }
 
@@ -169,7 +196,15 @@ export function initPhase3(phase3Group) {
     const photoWidth = 2.2;
     const photoHeight = 3;
     
-    imageFiles.forEach((filename, index) => {
+    // NOUVEAU: Déterminer l'ensemble final des clés d'images (fichiers + Base64 admin)
+    const adminImages = getAdminImages();
+    const adminKeys = adminImages.map((_, index) => `admin_${index}`);
+    const allImageSources = [...imageFiles, ...adminKeys];
+    
+    // S'assurer que le carrousel est vide avant de le remplir (important si on réinitialisait)
+    imageCarousel = []; 
+
+    allImageSources.forEach((sourceKey, index) => { // sourceKey peut être 'P1.jpeg' ou 'admin_0'
         const imagePlaneGroup = new THREE.Group(); 
         const photoGeo = new THREE.PlaneGeometry(photoWidth, photoHeight);
         
@@ -181,11 +216,11 @@ export function initPhase3(phase3Group) {
         });
         
         // Utiliser la texture préchargée
-        if (preloadedTextures[filename]) {
-            photoMat.map = preloadedTextures[filename];
+        if (preloadedTextures[sourceKey]) {
+            photoMat.map = preloadedTextures[sourceKey];
             photoMat.needsUpdate = true;
         } else {
-            console.warn('Texture carrousel non préchargée:', filename);
+            console.warn('Texture carrousel non trouvée pour la clé:', sourceKey, '. Affichage en couleur par défaut.');
             photoMat.color.set(0xf0c4df);
         }
         
@@ -193,7 +228,8 @@ export function initPhase3(phase3Group) {
         photo.receiveShadow = true;
         imagePlaneGroup.add(photo);
         
-        const angle = (index / imageFiles.length) * Math.PI * 2;
+        // Calcul de l'angle basé sur le NOUVEAU nombre total d'images
+        const angle = (index / allImageSources.length) * Math.PI * 2;
         const x = Math.cos(angle) * carouselRadius; 
         const z = Math.sin(angle) * carouselRadius;
         
@@ -226,6 +262,8 @@ export function initPhase3(phase3Group) {
 // ==========================================================
 // GESTION DU SURVOL
 // ==========================================================
+// ... (Les fonctions updateMousePosition3D, checkHoveredImage, updateCarouselPhase3,
+// updateImageBandPhase3 et setPhase3Active restent inchangées) ...
 
 export function updateMousePosition3D(event, canvas) {
     if (!isPhase3Active) return;

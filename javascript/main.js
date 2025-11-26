@@ -14,7 +14,8 @@ import {
     mouse3D, preloadCarouselTextures 
 } from './phase3Carousel.js';
 // NOUVEAU: Import du manager d'administration
-import { initAdmin, getAdminStatus } from './adminManager.js'; 
+// Ajout de getAdminImages
+import { initAdmin, getAdminStatus, getAdminImages } from './adminManager.js'; 
 
 // ==========================================================
 // 0. ÉCRAN DE CHARGEMENT
@@ -151,9 +152,10 @@ async function initializeApp() {
             console.log('✓ Textures du cube chargées');
         });
         
+        // preloadCarouselTextures inclut maintenant les images de l'admin
         const carouselPromise = preloadCarouselTextures().then(() => {
             updateLoadingProgress();
-            console.log('✓ Textures du carrousel chargées');
+            console.log('✓ Textures du carrousel chargées (incl. admin)');
         });
         
         await Promise.all([modelPromise, cubePromise, carouselPromise]);
@@ -277,12 +279,6 @@ window.addEventListener('scroll', () => {
 const adminBtn = document.getElementById('adminBtn'); 
 const adminModal = document.getElementById('adminModal'); 
 const closeModal = document.getElementById('closeModal');
-
-// ANCIENNE LOGIQUE SUPPRIMÉE ET DÉPLACÉE VERS adminManager.js
-// if (adminBtn) { 
-//     adminBtn.addEventListener('click', () => adminModal.classList.add('active')); 
-//     closeModal.addEventListener('click', () => adminModal.classList.remove('active')); 
-// }
 
 // NOUVEAU: Initialisation de la logique du panneau d'administration
 if (adminBtn && adminModal && closeModal) {
