@@ -97,12 +97,12 @@ scene.add(light1);
 const light2 = new THREE.PointLight(0xffffff, 1.5, 10);
 scene.add(light2);
 
-// MODIFICATION: Ajustement de l'offset Z pour la nouvelle base de 18.0 dans utils.js.
-// Base Phase 2/3 (desktop): 10. Position cible mobile: 18.0. Offset: 18.0 - 10.0 = 8.0.
-const MOBILE_Z_OFFSET = window.innerWidth <= 480 ? 8.0 : 0; 
+// MODIFICATION: Ajustement de l'offset Z pour la nouvelle base de 16.0 (si utils.js est mis à jour).
+// Ancien Z mobile: 18.0. Base Desktop: 10. Offset: 16.0 - 10.0 = 6.0.
+const MOBILE_Z_OFFSET = window.innerWidth <= 480 ? 6.0 : 0; 
 
-// NOUVELLE CONSTANTE : Position Z optimale pour le zoom Plein Écran Phase 3 sur mobile
-const PHASE3_MOBILE_ZOOM_Z = 5.0; // Distance plus proche pour l'effet Plein Écran mobile
+// MODIFICATION: Rapproche la position Z du carrousel mobile (pour ne pas être trop massif).
+const PHASE3_MOBILE_ZOOM_Z = 12.0; // Recul de la scène Phase 3 par défaut sur mobile.
 
 // Les offsets Y sont remis à zéro car le cube (Phase 1) est désormais masqué sur mobile.
 const MOBILE_TEXT_Y_POS = isMobile ? 0 : 0; 
@@ -371,6 +371,7 @@ function animate() {
         phase2Group.visible = true;
         
         // Position de la caméra pour Phase 2 (synchronisée avec Phase 1/Tapis)
+        // Utilise le nouvel offset réduit (6.0)
         camera.position.set(0, 0, 10 + MOBILE_Z_OFFSET); 
         camera.lookAt(0, 0, 0);
 
@@ -397,8 +398,8 @@ function animate() {
         setPhase3Active(true, canvas);
         
         // DÉFINITION DE LA POSITION Z DE LA CAMÉRA POUR LA PHASE 3
-        // Position de zoom rapprochée sur mobile (PHASE3_MOBILE_ZOOM_Z),
-        // Position synchronisée sur desktop.
+        // Sur mobile, utilise PHASE3_MOBILE_ZOOM_Z (12.0) pour reculer la scène générale 
+        // et corriger la taille excessive.
         const phase3Z = isMobile ? PHASE3_MOBILE_ZOOM_Z : 10 + MOBILE_Z_OFFSET;
         
         camera.position.set(0, 0, phase3Z);
