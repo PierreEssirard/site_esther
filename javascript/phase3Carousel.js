@@ -1,4 +1,4 @@
-// javascript/phase3Carousel.js
+// phase3Carousel.js - VERSION OPTIMISÉE AVEC PRELOADER
 
 let imageCarousel = [];
 const carouselRadius = 5; 
@@ -27,16 +27,80 @@ const numFiles = imageBandFiles.length;
 const bandSegmentWidth = (imageBandWidth + bandSpacing) * numFiles;
 const numCopies = 4;
 const bandVerticalOffset = 9.0;
-const CAROUSEL_VERTICAL_OFFSET = 1; // DÉCALAGE Y : Valeur négative pour descendre
-const CAROUSEL_DEPTH_OFFSET = 0.0;    // DÉCALAGE Z : Valeur négative pour rapprocher
+const CAROUSEL_VERTICAL_OFFSET = 1;
+const CAROUSEL_DEPTH_OFFSET = 0.0;
 
-// === CONSTANTES D'ONDES POUR LE BANDEAU ===
 const WAVE_AMPLITUDE = 0.1;
 const WAVE_FREQUENCY = 0.5;
 const WAVE_SPEED = 1.0;
 
+// NOUVEAU: Cache des textures préchargées
+let preloadedTextures = {};
+let bandPreloadedTextures = {};
+let texturesLoaded = false;
+
 // ==========================================================
-// A. Initialisation (Aucun changement ici)
+// PRÉCHARGEMENT DES TEXTURES
+// ==========================================================
+
+/**
+ * Précharge toutes les textures du carrousel
+ */
+export function preloadCarouselTextures() {
+    const promises = [];
+    
+    // Précharger les images du carrousel
+    imageFiles.forEach(filename => {
+        const promise = new Promise((resolve, reject) => {
+            const path = `image_projets/${filename}`;
+            textureLoader.load(
+                path,
+                (texture) => {
+                    texture.colorSpace = THREE.SRGBColorSpace;
+                    texture.minFilter = THREE.LinearFilter;
+                    preloadedTextures[filename] = texture;
+                    resolve();
+                },
+                undefined,
+                (error) => {
+                    console.error('Erreur préchargement texture carrousel:', filename, error);
+                    reject(error);
+                }
+            );
+        });
+        promises.push(promise);
+    });
+    
+    // Précharger les images du bandeau
+    imageBandFiles.forEach(filename => {
+        const promise = new Promise((resolve, reject) => {
+            const path = `image_bandeau/${filename}`;
+            textureLoader.load(
+                path,
+                (texture) => {
+                    texture.colorSpace = THREE.SRGBColorSpace;
+                    texture.minFilter = THREE.LinearFilter;
+                    bandPreloadedTextures[filename] = texture;
+                    resolve();
+                },
+                undefined,
+                (error) => {
+                    console.error('Erreur préchargement texture bandeau:', filename, error);
+                    reject(error);
+                }
+            );
+        });
+        promises.push(promise);
+    });
+    
+    return Promise.all(promises).then(() => {
+        texturesLoaded = true;
+        console.log('Toutes les textures Phase 3 sont chargées');
+    });
+}
+
+// ==========================================================
+// INITIALISATION
 // ==========================================================
 
 function createRepeatingImageBand(group, yPosition, scaleX) {
@@ -44,28 +108,24 @@ function createRepeatingImageBand(group, yPosition, scaleX) {
     
     for (let j = 0; j < numCopies; j++) {
         imageBandFiles.forEach((filename, index) => {
-            const path = `image_bandeau/${filename}`;
             const geometry = new THREE.PlaneGeometry(imageBandWidth, imageBandHeight);
             
             const material = new THREE.MeshBasicMaterial({ 
                 side: THREE.DoubleSide,
                 transparent: true,
-                opacity: 0, 
+                opacity: 1, // Directement à 1 car texture préchargée
                 toneMapped: false,
                 color: 0xffffff 
             });
             
-            textureLoader.load(path, (texture) => {
-                texture.colorSpace = THREE.SRGBColorSpace; 
-                texture.minFilter = THREE.LinearFilter;
-                material.map = texture;
-                material.opacity = 1; 
+            // Utiliser la texture préchargée
+            if (bandPreloadedTextures[filename]) {
+                material.map = bandPreloadedTextures[filename];
                 material.needsUpdate = true;
-            }, undefined, (error) => {
-                console.error('Erreur lors du chargement du bandeau:', filename, error);
-                material.color.set(0xffffff); 
-                material.opacity = 1.0; 
-            });
+            } else {
+                console.warn('Texture non préchargée:', filename);
+                material.color.set(0xf0c4df);
+            }
             
             const mesh = new THREE.Mesh(geometry, material);
             const xOffset = j * bandSegmentWidth + index * (imageBandWidth + bandSpacing);
@@ -82,8 +142,7 @@ function createRepeatingImageBand(group, yPosition, scaleX) {
 }
 
 /**
- * Initialise le carrousel et le bandeau d'images.
- * @param {THREE.Group} phase3Group
+ * Initialise le carrousel et le bandeau d'images avec textures préchargées
  */
 export function initPhase3(phase3Group) {
     // Lumières Phase 3
@@ -104,31 +163,28 @@ export function initPhase3(phase3Group) {
     phase3Group.add(fillLight3);
 
     // Carrousel d'images
-    const photoWidth = 2.2; // Largeur de base de la photo
-    const photoHeight = 3; // Hauteur de base de la photo
+    const photoWidth = 2.2;
+    const photoHeight = 3;
     
     imageFiles.forEach((filename, index) => {
         const imagePlaneGroup = new THREE.Group(); 
         const photoGeo = new THREE.PlaneGeometry(photoWidth, photoHeight);
         
         const photoMat = new THREE.MeshBasicMaterial({ 
-            side: THREE.DoubleSide, transparent: true, opacity: 1, toneMapped: false
+            side: THREE.DoubleSide, 
+            transparent: true, 
+            opacity: 1, 
+            toneMapped: false
         });
         
-        textureLoader.load(
-            `image_projets/${filename}`,
-            (texture) => {
-                texture.colorSpace = THREE.SRGBColorSpace; 
-                texture.minFilter = THREE.LinearFilter;
-                photoMat.map = texture;
-                photoMat.needsUpdate = true;
-            },
-            undefined,
-            (error) => {
-                console.error('Erreur lors du chargement de la texture:', filename, error);
-                photoMat.color.set(0xf0c4df);
-            }
-        );
+        // Utiliser la texture préchargée
+        if (preloadedTextures[filename]) {
+            photoMat.map = preloadedTextures[filename];
+            photoMat.needsUpdate = true;
+        } else {
+            console.warn('Texture carrousel non préchargée:', filename);
+            photoMat.color.set(0xf0c4df);
+        }
         
         const photo = new THREE.Mesh(photoGeo, photoMat);
         photo.receiveShadow = true;
@@ -165,7 +221,7 @@ export function initPhase3(phase3Group) {
 }
 
 // ==========================================================
-// B. Gestion du survol (Aucun changement ici)
+// GESTION DU SURVOL
 // ==========================================================
 
 export function updateMousePosition3D(event, canvas) {
@@ -209,11 +265,10 @@ export function checkHoveredImage(camera, canvas) {
 }
 
 // ==========================================================
-// C. Mise à jour (Nouvelle position Y = -1.5)
+// MISE À JOUR
 // ==========================================================
 
 export function updateCarouselPhase3(transitionProgress, camera) {
-    // 1. Arrêter la rotation si une image est survolée
     if (!hoveredImage) { 
         carouselRotation += 0.004; 
     }
@@ -224,7 +279,6 @@ export function updateCarouselPhase3(transitionProgress, camera) {
         const userData = imagePlaneGroup.userData;
         const photoMaterial = imagePlaneGroup.children[0].material; 
 
-        // 2. Gestion globale de la mise à l'échelle d'apparition (de 0 à 1)
         if (transitionProgress < 1) {
             userData.targetScale = transitionProgress;
         } else {
@@ -232,9 +286,6 @@ export function updateCarouselPhase3(transitionProgress, camera) {
         }
         
         if (userData.isHovered) {
-            // --- LOGIQUE DE SURVOL (ZOOM) ---
-            
-            // Calcul dynamique de l'échelle (conservé)
             const D = 6.0; 
             const paddingFactor = 0.90; 
 
@@ -249,42 +300,30 @@ export function updateCarouselPhase3(transitionProgress, camera) {
             const scaleFactorH = (H_visible * paddingFactor) / H_base;
 
             userData.targetScale = Math.min(scaleFactorW, scaleFactorH);
-            
-            // Position Y ajustée à -1.8, Z fixé à 4 (pour être devant la caméra)
             userData.targetPosition.set(0, -0.3, 4); 
             
             imagePlaneGroup.rotation.set(0, 0, 0); 
-
-            // Masquer les autres images derrière la photo zoomée
             photoMaterial.opacity = 1.0; 
             photoMaterial.transparent = false; 
 
         } else {
-            // --- LOGIQUE NORMALE DU CARROUSEL (Inclut le Vortex) ---
-            
             if (transitionProgress < 1) {
-                // 3. ÉTAT VORTEX (Apparition progressive depuis le centre)
                 const t = transitionProgress; 
                 
-                // Rotation de vortex: L'image tourne en apparaissant (4 tours au début)
                 imagePlaneGroup.rotation.y = (1 - t) * Math.PI * 4; 
                 
-                // Position: Ramp up from center (0,0,0) to final resting position
                 const x_final = Math.cos(userData.baseAngle) * carouselRadius;
                 const z_final = Math.sin(userData.baseAngle) * carouselRadius;
                 
-                // La position finale est atteinte progressivement
                 userData.homePosition.set(
                     x_final * t, 
-                    CAROUSEL_VERTICAL_OFFSET * t, // Applique l'offset Y progressivement
-                    z_final * t + CAROUSEL_DEPTH_OFFSET * t // Applique l'offset Z progressivement
+                    CAROUSEL_VERTICAL_OFFSET * t,
+                    z_final * t + CAROUSEL_DEPTH_OFFSET * t
                 );
 
                 userData.targetPosition.copy(userData.homePosition);
                 
             } else {
-                // 3. ÉTAT NORMAL DU CARROUSEL (Rotation active)
-
                 if (!userData.rotationLocked) {
                     userData.currentAngle = userData.baseAngle + carouselRotation;
                 }
@@ -292,27 +331,20 @@ export function updateCarouselPhase3(transitionProgress, camera) {
                 const x = Math.cos(userData.currentAngle) * carouselRadius;
                 const z = Math.sin(userData.currentAngle) * carouselRadius;
                 
-                // Application des offsets Y et Z pour la position de repos
                 userData.homePosition.set(x, 
-                                          CAROUSEL_VERTICAL_OFFSET, // Utilisation de l'offset Y
-                                          z + CAROUSEL_DEPTH_OFFSET); // Utilisation de l'offset Z
+                                          CAROUSEL_VERTICAL_OFFSET,
+                                          z + CAROUSEL_DEPTH_OFFSET);
                 
                 userData.targetPosition.copy(userData.homePosition);
                 userData.targetScale = transitionProgress >= 1 ? 1 : transitionProgress;
 
-                // Réinitialisation de la rotation après le vortex
                 imagePlaneGroup.rotation.y = 0; 
-
-                // Interpolation vers la rotation Y=0 (Face-On)
                 imagePlaneGroup.quaternion.slerp(identityQuaternion, 0.1);
             }
 
-
-            // Écraser les rotations X et Z pour une verticalité parfaite
             imagePlaneGroup.rotation.x = 0;
             imagePlaneGroup.rotation.z = 0;
             
-            // Les autres images deviennent transparentes si une autre est zoomée
             if (hoveredImage) {
                 photoMaterial.opacity = 0.0; 
                 photoMaterial.transparent = true;
@@ -322,32 +354,26 @@ export function updateCarouselPhase3(transitionProgress, camera) {
             }
         }
         
-        // 4. Mise à jour douce de la position et de l'échelle (LERP 0.05 pour la fluidité)
         userData.currentPosition.lerp(userData.targetPosition, 0.05);
         imagePlaneGroup.position.copy(userData.currentPosition);
         
         userData.currentScale += (userData.targetScale - userData.currentScale) * 0.05;
         imagePlaneGroup.scale.setScalar(userData.currentScale);
         
-        // Mettre à jour la propriété renderOrder pour que l'image survolée soit toujours devant
         if (userData.isHovered) {
-            imagePlaneGroup.renderOrder = 1; // La plus haute priorité de rendu
+            imagePlaneGroup.renderOrder = 1;
         } else {
-            imagePlaneGroup.renderOrder = 0; // Priorité normale
+            imagePlaneGroup.renderOrder = 0;
         }
     });
 }
 
-/**
- * Anime le défilement du bandeau d'images (Sinusoidal) (inchangée)
- */
 export function updateImageBandPhase3(transitionProgress, scrollFactor) {
     const elements = bandBottomElements;
     const scrollMovement = scrollFactor * SCROLL_COEFFICIENT; 
     
     bandScrollOffset = (scrollMovement) % bandSegmentWidth;
     
-    // Temps pour l'animation continue de la vague
     const time = performance.now() * 0.001 * WAVE_SPEED;
     const initialY = -bandVerticalOffset; 
 
@@ -358,21 +384,17 @@ export function updateImageBandPhase3(transitionProgress, scrollFactor) {
              newX += bandSegmentWidth * numCopies;
         }
         
-        // --- CALCULS DE VAGUE SINUSOÏDALE (BASE) ---
         const waveOffset = Math.sin(newX * WAVE_FREQUENCY + time) * WAVE_AMPLITUDE;
         const rotationZ = Math.cos(newX * WAVE_FREQUENCY + time) * WAVE_AMPLITUDE * 0.5;
 
-        // 1. Application des positions et rotations
         mesh.position.x = newX;
         mesh.position.y = initialY + waveOffset; 
         
         mesh.rotation.z = rotationZ * mesh.userData.initialScaleXSign; 
         
-        // 2. Réinitialisation du Scale 
         mesh.scale.y = 1;
         mesh.scale.x = mesh.userData.initialScaleXSign; 
 
-        // Opacité (non modifiée)
         const targetOpacity = Math.min(1, transitionProgress * 3);
         
         if (mesh.material.map) {

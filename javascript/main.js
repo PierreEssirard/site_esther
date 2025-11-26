@@ -1,43 +1,100 @@
-// javascript/main.js
+// javascript/main.js - VERSION AVEC PRÉCHARGEMENT
 
 import { setRendererToCanvasSize, adjustCameraForScreen, updateMousePosition } from './utils.js';
 import { 
     initPhase1, updatePhase1, setAcceleratingState, 
     hasExploded, checkTrainIntersection, isMobile,
-    createFallingCube, setMouseNormalizedX, setMouseNormalizedY 
+    createFallingCube, setMouseNormalizedX, setMouseNormalizedY,
+    preloadModel, preloadCubeTextures // NOUVEAU
 } from './phase1Train.js';
 import { initPhase2, updatePhase2 } from './phase2Brush.js';
 import { 
     initPhase3, updateCarouselPhase3, updateImageBandPhase3, 
     setPhase3Active, updateMousePosition3D, checkHoveredImage,
-    mouse3D
+    mouse3D, preloadCarouselTextures // NOUVEAU
 } from './phase3Carousel.js';
 
+// ==========================================================
+// 0. ÉCRAN DE CHARGEMENT
+// ==========================================================
+
+// Créer l'overlay de chargement
+const loadingOverlay = document.createElement('div');
+loadingOverlay.id = 'loading-overlay';
+loadingOverlay.style.cssText = `
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: #c92e2e;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    z-index: 10000;
+    transition: opacity 0.5s ease;
+`;
+
+const loadingText = document.createElement('div');
+loadingText.style.cssText = `
+    color: white;
+    font-size: 24px;
+    font-weight: bold;
+    margin-bottom: 20px;
+`;
+loadingText.textContent = 'Chargement...';
+loadingOverlay.appendChild(loadingText);
+
+// Barre de progression
+const progressBar = document.createElement('div');
+progressBar.style.cssText = `
+    width: 300px;
+    height: 4px;
+    background: rgba(255, 255, 255, 0.3);
+    border-radius: 2px;
+    overflow: hidden;
+`;
+
+const progressFill = document.createElement('div');
+progressFill.style.cssText = `
+    width: 0%;
+    height: 100%;
+    background: white;
+    border-radius: 2px;
+    transition: width 0.3s ease;
+`;
+progressBar.appendChild(progressFill);
+loadingOverlay.appendChild(progressBar);
+
+document.body.appendChild(loadingOverlay);
+
+// Fonction pour mettre à jour la progression
+function updateProgress(percent) {
+    progressFill.style.width = percent + '%';
+}
 
 // ==========================================================
 // 1. THREE.JS SETUP GLOBAL
 // ==========================================================
 const canvas = document.getElementById('canvas3d');
 const scene = new THREE.Scene();
-scene.background = new THREE.Color(0xf08411); // Couleur de départ (Orange)
+scene.background = new THREE.Color(0xc92e2e); // Couleur de départ (Rouge - cohérente avec loading)
 
-// Couleurs pour les transitions
-const COLOR_PHASE1 = new THREE.Color(0xc92e2e); // rouge
-const COLOR_PHASE2 = new THREE.Color(0xdb5a15); // orange
-const COLOR_PHASE3 = new THREE.Color(0xf5ae43); // jaune
+const COLOR_PHASE1 = new THREE.Color(0xc92e2e);
+const COLOR_PHASE2 = new THREE.Color(0xdb5a15);
+const COLOR_PHASE3 = new THREE.Color(0xf5ae43);
 
-// Caméra
 const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
 renderer.outputColorSpace = THREE.SRGBColorSpace; 
 
-// Lumières
 const ambientLight = new THREE.AmbientLight(0xffffff, 1.5); 
 scene.add(ambientLight);
 const light1 = new THREE.DirectionalLight(0xffffff, 0.8); 
 light1.position.set(5, 5, 5);
 scene.add(light1);
-const light2 = new THREE.PointLight(0xffffff, 1.5, 10); // Pour le pinceau
+const light2 = new THREE.PointLight(0xffffff, 1.5, 10);
 scene.add(light2);
 
 // ==========================================================
@@ -57,19 +114,74 @@ phase3Group.visible = false;
 const globalParticlesGroup = new THREE.Group();
 scene.add(globalParticlesGroup);
 
-// État global pour les particules qui tombent (cubes)
 let fallingCubes = [];
 
 // ==========================================================
-// 3. INITIALISATION DES PHASES
+// 3. PRÉCHARGEMENT ET INITIALISATION
 // ==========================================================
-initPhase1(phase1Group);
-initPhase2(phase2Group);
-initPhase3(phase3Group);
 
-// Configuration initiale
-setRendererToCanvasSize(renderer, camera); 
-adjustCameraForScreen(camera, phase1Group); 
+let isAppReady = false;
+
+async function initializeApp() {
+    try {
+        let completedTasks = 0;
+        const totalTasks = 3;
+        
+        // Fonction pour mettre à jour la progression
+        const updateLoadingProgress = () => {
+            completedTasks++;
+            const percent = (completedTasks / totalTasks) * 100;
+            updateProgress(percent);
+        };
+        
+        // Précharger TOUTES les ressources avec suivi de progression
+        const modelPromise = preloadModel().then(() => {
+            updateLoadingProgress();
+            console.log('✓ Modèle 3D chargé');
+        });
+        
+        const cubePromise = preloadCubeTextures().then(() => {
+            updateLoadingProgress();
+            console.log('✓ Textures du cube chargées');
+        });
+        
+        const carouselPromise = preloadCarouselTextures().then(() => {
+            updateLoadingProgress();
+            console.log('✓ Textures du carrousel chargées');
+        });
+        
+        await Promise.all([modelPromise, cubePromise, carouselPromise]);
+        
+        // Initialiser les phases
+        initPhase1(phase1Group);
+        initPhase2(phase2Group);
+        initPhase3(phase3Group);
+        
+        // Configuration initiale
+        setRendererToCanvasSize(renderer, camera); 
+        adjustCameraForScreen(camera, phase1Group);
+        
+        // Marquer l'application comme prête
+        isAppReady = true;
+        
+        // Masquer l'écran de chargement avec un petit délai pour voir 100%
+        setTimeout(() => {
+            loadingOverlay.style.opacity = '0';
+            setTimeout(() => {
+                loadingOverlay.remove();
+            }, 500);
+        }, 300);
+        
+        console.log('🎉 Application prête !');
+        
+    } catch (error) {
+        console.error('Erreur lors du chargement:', error);
+        loadingText.textContent = 'Erreur de chargement. Veuillez rafraîchir.';
+    }
+}
+
+// Lancer l'initialisation
+initializeApp();
 
 // ==========================================================
 // 4. GESTION DES ÉVÉNEMENTS
@@ -82,33 +194,21 @@ window.addEventListener('resize', () => {
 const raycaster = new THREE.Raycaster(); 
 const mouse = new THREE.Vector2(); 
 
-// Logique pour la Phase 1 (Tapis)
 if (!isMobile) { 
     canvas.addEventListener('mousemove', (e) => { 
-        // 1. Calcul des positions pour le Raycasting/Suivi du tapis (mouse est en coordonnées normalisées 2D)
         updateMousePosition(e, canvas, mouse);
 
-        // 2. Transmet les positions normalisées pour la rotation/l'effet de bord (même si non utilisé dans la logique actuelle)
-        const normalizedX = (e.clientX / window.innerWidth) * 2 - 1; // -1 (gauche) à 1 (droite)
-        const normalizedY = -(e.clientY / window.innerHeight) * 2 + 1; // -1 (bas) à 1 (haut)
+        const normalizedX = (e.clientX / window.innerWidth) * 2 - 1;
+        const normalizedY = -(e.clientY / window.innerHeight) * 2 + 1;
         setMouseNormalizedX(normalizedX);
         setMouseNormalizedY(normalizedY); 
 
-        // 3. LOGIQUE D'ACCÉLÉRATION AU SURVOL DU TAPIS (CHECK INTERSECTION)
-        // Vérifie si la souris survole le tapis pour déclencher l'accélération (rotation chaotique/explosion)
         if (!hasExploded) {
             const isHovering = checkTrainIntersection(raycaster, camera, mouse);
             setAcceleratingState(isHovering);
         }
 
         if (hasExploded) return; 
-
-        // Logique de l'accélération AVANT MODIFICATION (maintenant gérée par isHovering)
-        // const rect = canvas.getBoundingClientRect(); 
-        // const relX = (e.clientX - rect.left) / rect.width; 
-        // const relY = (e.clientY - rect.top) / rect.height; 
-        // const shouldAccelerate = relX > 0.0 && relX < 0.6 && relY > 0.2 && relY < 0.8;
-        // setAcceleratingState(shouldAccelerate);
     }); 
 } else { 
     canvas.addEventListener('touchstart', (e) => { 
@@ -120,13 +220,11 @@ if (!isMobile) {
     canvas.addEventListener('touchend', () => setAcceleratingState(false)); 
 }
 
-// Logique pour la Phase 3 (Carrousel)
 canvas.addEventListener('mousemove', (e) => {
     updateMousePosition3D(e, canvas);
     checkHoveredImage(camera, canvas);
 });
 
-// Autres événements (Header/Intro)
 window.addEventListener('scroll', () => {
     const h = document.getElementById('header'); 
     const scrollY = window.scrollY; 
@@ -155,7 +253,6 @@ window.addEventListener('scroll', () => {
     }
 });
 
-// Admin Modal
 const adminBtn = document.getElementById('adminBtn'); 
 const adminModal = document.getElementById('adminModal'); 
 const closeModal = document.getElementById('closeModal');
@@ -170,19 +267,22 @@ if (adminBtn) {
 function animate() {
     requestAnimationFrame(animate);
     
+    // Ne rien afficher tant que l'app n'est pas prête
+    if (!isAppReady) {
+        renderer.render(scene, camera);
+        return;
+    }
+    
     const scrollY = window.scrollY;
     const heroHeight = window.innerHeight;
     const scroll3dSection = document.getElementById('scroll3dSection');
     const heroContent = document.querySelector('.hero-content');
     
-    // --- CALCUL DES TRANSITIONS ---
-    // Phase 1 -> Phase 2 transition
     let phase1to2Transition = 0;
     if (scrollY > heroHeight * 0.5) {
         phase1to2Transition = Math.min(1, (scrollY - heroHeight * 0.5) / (heroHeight * 0.5));
     }
     
-    // Phase 2 -> Phase 3 transition
     const scroll3dHeight = scroll3dSection ? scroll3dSection.offsetHeight : 0;
     const phase2End = heroHeight + scroll3dHeight;
     let phase2to3Transition = 0;
@@ -190,23 +290,17 @@ function animate() {
         phase2to3Transition = Math.max(0, Math.min(1, (scrollY - (phase2End - heroHeight)) / (heroHeight * 0.5))); 
     }
 
-    // --- TRANSITION DE COULEUR DE FOND ---
     let targetColor = COLOR_PHASE1.clone();
     
     if (phase1to2Transition < 1) {
-        // Transition Phase 1 (Orange) vers Phase 2 (Gris clair)
         targetColor.lerpColors(COLOR_PHASE1, COLOR_PHASE2, phase1to2Transition);
     } else if (phase2to3Transition < 1) {
-        // Transition Phase 2 (Gris clair) vers Phase 3 (Noir)
         targetColor.lerpColors(COLOR_PHASE2, COLOR_PHASE3, phase2to3Transition);
     } else {
-        // Phase 3 (Noir)
         targetColor = COLOR_PHASE3;
     }
     scene.background.copy(targetColor);
-    // ------------------------------------
     
-    // --- PHASE 1 : TRAIN ---
     if (phase1to2Transition < 1) {
         phase1Group.visible = true;
         const opacity = 1 - phase1to2Transition;
@@ -230,7 +324,6 @@ function animate() {
         } 
     }
 
-    // --- CUBES TOMBANTS GLOBAUX ---
     for (let i = fallingCubes.length - 1; i >= 0; i--) { 
         let p = fallingCubes[i]; 
         p.position.add(p.userData.velocity); 
@@ -242,7 +335,6 @@ function animate() {
         } 
     }
 
-    // --- PHASE 2 : PINCEAU ---
     if (phase1to2Transition > 0 && scroll3dSection) { 
         phase2Group.visible = true;
         
@@ -257,7 +349,6 @@ function animate() {
         
         updatePhase2(p, phase2to3Transition, light2);
 
-        // Progression du bandeau
         const bandAppearanceProgress = Math.max(0, Math.min(1, (scrollY - heroHeight) / (heroHeight * 0.5))); 
         const bandScrollFactor = Math.max(0, scrollY - heroHeight * 0.5); 
         updateImageBandPhase3(bandAppearanceProgress, bandScrollFactor); 
@@ -266,7 +357,6 @@ function animate() {
         phase2Group.visible = false; 
     }
     
-    // --- PHASE 3 : CARROUSEL ---
     if (phase2to3Transition > 0.2) {
         phase3Group.visible = true;
         phase3Group.position.y = 0; 
@@ -287,7 +377,6 @@ function animate() {
         setPhase3Active(false, canvas);
     }
     
-    // Contrôle la disparition du contenu HTML
     if (heroContent) {
         heroContent.style.opacity = Math.max(0, 1 - phase1to2Transition * 1.5);
     }
