@@ -332,7 +332,6 @@ export function updatePhase1(phase1Group, globalParticlesGroup, fallingCubes) {
                 cubeMesh.rotation.x += 0.003;
                 cubeMesh.rotation.z += 0.003;
             }
-            // La position Y est maintenant gérée dans main.js pour la responsivité (desktop)
         }
     }
 }
@@ -347,12 +346,12 @@ export function setMouseNormalizedY(y) {
 
 /**
  * Crée un cube qui tombe, en utilisant maintenant les textures préchargées.
+ * MODIFICATION : Ajustement de la position de départ Y pour couvrir toute la hauteur mobile.
  */
 export function createFallingCube() {
     // Utiliser les textures préchargées du grand cube
     const materials = cubeTexturesCache.map(texture => {
         // Nous clonons le matériau pour garantir que l'opacité individuelle
-        // et toute autre modification n'affectent pas les autres cubes.
         const material = new THREE.MeshBasicMaterial({
             map: texture,
             transparent: true,
@@ -361,22 +360,37 @@ export function createFallingCube() {
         return material;
     });
 
-    // Fallback si les textures ne sont pas chargées (ne devrait pas arriver grâce au préchargement)
+    // Fallback si les textures ne sont pas chargées
     if (materials.length === 0) {
         for (let i = 0; i < 6; i++) {
             materials.push(new THREE.MeshBasicMaterial({
-                color: 0xf0c4df, // Couleur par défaut si la texture manque
+                color: 0xf0c4df, 
                 transparent: true,
                 opacity: 0.9
             }));
         }
     }
     
+    // Position de départ Y ajustée pour le mobile
+    let startY = 6;
+    if (isMobile) {
+        // Calcul pour positionner les cubes au-dessus du viewport mobile.
+        // La caméra est à Z=18.0 sur mobile (via utils.js).
+        // Angle de vue (FOV) de 75 degrés.
+        const halfFOV = THREE.MathUtils.degToRad(75 / 2);
+        // Hauteur visible à Z=18.0 : 2 * 18.0 * tan(halfFOV) ≈ 30.7
+        const visibleHeight = 31; // Valeur arrondie pour la sécurité
+        
+        // Démarrer au-dessus de la zone visible
+        startY = (visibleHeight / 2) + 2; // +2 pour une marge au-dessus
+    }
+
     const cube = new THREE.Mesh(
         new THREE.BoxGeometry(0.2, 0.2, 0.2), 
-        materials // Utilise l'array de matériaux avec les textures
+        materials 
     );
-    cube.position.set((Math.random() - 0.5) * 10, 6, (Math.random() - 0.5) * 5);
+    // Le cube part de startY, qui sera beaucoup plus haut sur mobile
+    cube.position.set((Math.random() - 0.5) * 10, startY, (Math.random() - 0.5) * 5);
     cube.userData = { 
         velocity: new THREE.Vector3(0, -0.03 - Math.random() * 0.04, 0), 
         rotation: new THREE.Vector3(Math.random()*0.1, Math.random()*0.1, Math.random()*0.1) 

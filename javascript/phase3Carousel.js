@@ -39,6 +39,9 @@ let preloadedTextures = {};
 let bandPreloadedTextures = {};
 let texturesLoaded = false;
 
+// Détection mobile (pour le zoom)
+const isMobile = /Android|webOS|iPhone|iPad|IEMobile|Opera Mini/i.test(navigator.userAgent);
+
 // ==========================================================
 // PRÉCHARGEMENT DES TEXTURES
 // ==========================================================
@@ -286,11 +289,27 @@ export function updateCarouselPhase3(transitionProgress, camera) {
         }
         
         if (userData.isHovered) {
-            const D = 6.0; 
-            const paddingFactor = 0.90; 
+            
+            // MODIFICATION POUR MAXIMISER L'ÉCRAN SUR MOBILE
+            const D_DESKTOP = 6.0; // Distance de zoom pour desktop
+            const PADDING_FACTOR_DESKTOP = 0.90; 
 
+            // Règle de zoom spécifique au mobile
+            let D_ZOOM = D_DESKTOP;
+            let paddingFactor = PADDING_FACTOR_DESKTOP;
+            let targetZ = 4; // Position Z par défaut
+
+            if (isMobile) {
+                // Pour que la photo prenne presque tout l'écran, on la rapproche
+                // de la caméra (qui est elle-même très reculée sur mobile, Z=18 dans utils.js)
+                // Nous la rapprochons de Z=10 à Z=2
+                D_ZOOM = 8.0; // Augmenter la distance de calcul
+                paddingFactor = 0.95; // Moins de marge
+                targetZ = -0.5; // Rapproche la photo du plan Z=0 (plus proche de la caméra)
+            }
+            
             const currentFovRad = THREE.MathUtils.degToRad(camera.fov);
-            const H_visible = 2 * D * Math.tan(currentFovRad / 2);
+            const H_visible = 2 * D_ZOOM * Math.tan(currentFovRad / 2);
             const W_visible = H_visible * camera.aspect;
 
             const W_base = userData.originalPhotoWidth;
@@ -300,7 +319,9 @@ export function updateCarouselPhase3(transitionProgress, camera) {
             const scaleFactorH = (H_visible * paddingFactor) / H_base;
 
             userData.targetScale = Math.min(scaleFactorW, scaleFactorH);
-            userData.targetPosition.set(0, -0.3, 4); 
+            
+            // Applique la position Z ajustée
+            userData.targetPosition.set(0, -0.3, targetZ); 
             
             imagePlaneGroup.rotation.set(0, 0, 0); 
             photoMaterial.opacity = 1.0; 
