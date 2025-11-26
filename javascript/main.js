@@ -4,7 +4,7 @@ import { setRendererToCanvasSize, adjustCameraForScreen, updateMousePosition } f
 import { 
     initPhase1, updatePhase1, setAcceleratingState, 
     hasExploded, checkTrainIntersection, isMobile,
-    createFallingCube
+    createFallingCube, setMouseNormalizedX, setMouseNormalizedY 
 } from './phase1Train.js';
 import { initPhase2, updatePhase2 } from './phase2Brush.js';
 import { 
@@ -19,7 +19,12 @@ import {
 // ==========================================================
 const canvas = document.getElementById('canvas3d');
 const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x000000); 
+scene.background = new THREE.Color(0xf08411); // Couleur de départ (Orange)
+
+// Couleurs pour les transitions
+const COLOR_PHASE1 = new THREE.Color(0xc92e2e); // rouge
+const COLOR_PHASE2 = new THREE.Color(0xdb5a15); // orange
+const COLOR_PHASE3 = new THREE.Color(0xf5ae43); // jaune
 
 // Caméra
 const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
@@ -77,15 +82,33 @@ window.addEventListener('resize', () => {
 const raycaster = new THREE.Raycaster(); 
 const mouse = new THREE.Vector2(); 
 
-// Logique pour la Phase 1 (Train)
+// Logique pour la Phase 1 (Tapis)
 if (!isMobile) { 
     canvas.addEventListener('mousemove', (e) => { 
+        // 1. Calcul des positions pour le Raycasting/Suivi du tapis (mouse est en coordonnées normalisées 2D)
+        updateMousePosition(e, canvas, mouse);
+
+        // 2. Transmet les positions normalisées pour la rotation/l'effet de bord (même si non utilisé dans la logique actuelle)
+        const normalizedX = (e.clientX / window.innerWidth) * 2 - 1; // -1 (gauche) à 1 (droite)
+        const normalizedY = -(e.clientY / window.innerHeight) * 2 + 1; // -1 (bas) à 1 (haut)
+        setMouseNormalizedX(normalizedX);
+        setMouseNormalizedY(normalizedY); 
+
+        // 3. LOGIQUE D'ACCÉLÉRATION AU SURVOL DU TAPIS (CHECK INTERSECTION)
+        // Vérifie si la souris survole le tapis pour déclencher l'accélération (rotation chaotique/explosion)
+        if (!hasExploded) {
+            const isHovering = checkTrainIntersection(raycaster, camera, mouse);
+            setAcceleratingState(isHovering);
+        }
+
         if (hasExploded) return; 
-        const rect = canvas.getBoundingClientRect(); 
-        const relX = (e.clientX - rect.left) / rect.width; 
-        const relY = (e.clientY - rect.top) / rect.height; 
-        const shouldAccelerate = relX > 0.0 && relX < 0.6 && relY > 0.2 && relY < 0.8;
-        setAcceleratingState(shouldAccelerate);
+
+        // Logique de l'accélération AVANT MODIFICATION (maintenant gérée par isHovering)
+        // const rect = canvas.getBoundingClientRect(); 
+        // const relX = (e.clientX - rect.left) / rect.width; 
+        // const relY = (e.clientY - rect.top) / rect.height; 
+        // const shouldAccelerate = relX > 0.0 && relX < 0.6 && relY > 0.2 && relY < 0.8;
+        // setAcceleratingState(shouldAccelerate);
     }); 
 } else { 
     canvas.addEventListener('touchstart', (e) => { 
@@ -166,6 +189,22 @@ function animate() {
     if (scrollY > phase2End - heroHeight) {
         phase2to3Transition = Math.max(0, Math.min(1, (scrollY - (phase2End - heroHeight)) / (heroHeight * 0.5))); 
     }
+
+    // --- TRANSITION DE COULEUR DE FOND ---
+    let targetColor = COLOR_PHASE1.clone();
+    
+    if (phase1to2Transition < 1) {
+        // Transition Phase 1 (Orange) vers Phase 2 (Gris clair)
+        targetColor.lerpColors(COLOR_PHASE1, COLOR_PHASE2, phase1to2Transition);
+    } else if (phase2to3Transition < 1) {
+        // Transition Phase 2 (Gris clair) vers Phase 3 (Noir)
+        targetColor.lerpColors(COLOR_PHASE2, COLOR_PHASE3, phase2to3Transition);
+    } else {
+        // Phase 3 (Noir)
+        targetColor = COLOR_PHASE3;
+    }
+    scene.background.copy(targetColor);
+    // ------------------------------------
     
     // --- PHASE 1 : TRAIN ---
     if (phase1to2Transition < 1) {

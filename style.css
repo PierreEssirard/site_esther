@@ -1,8 +1,8 @@
 * { margin: 0; padding: 0; box-sizing: border-box; }
 body { 
     font-family: 'Cormorant Garamond', serif;
-    background: #000; 
-    color: #1a1a1a; 
+    background: #f5ae43; /* FOND BLANC POUR LA PHASE 1 */
+    color: #0b53fc; 
     line-height: 1.6; 
     overflow-x: hidden;
     -webkit-tap-highlight-color: transparent;
@@ -51,7 +51,8 @@ body {
 .carousel-scroll-section {
     height: 600vh; 
     position: relative;
-    background: linear-gradient(180deg, transparent 0%, #000000 30%, #000000 100%);
+    /* Assure la transition vers le noir pour les phases suivantes */
+    background: linear-gradient(180deg, transparent 0%, #000000 30%, #000000 100%); 
     z-index: 5;
     pointer-events: none;
 }
@@ -71,25 +72,25 @@ body {
 }
 
 .hero-content h1 { 
-    font-family: 'Playfair Display', serif;
+    font-family: 'Velvetyne', serif; /* TYPO EN NOIR ACTIF */
     font-size: clamp(4rem, 12vw, 10rem);
     font-weight: 300;
     letter-spacing: 0.02em;
-    color: #fff;
+    color: #1a1a1a; /* COULEUR NOIRE ACTIVE */
     line-height: 0.9;
     text-transform: uppercase;
 }
 
 .name-first { 
     display: block;
-    color: rgba(255, 255, 255, 0.95);
+    color: rgba(26, 26, 26, 0.95); /* COULEUR NOIRE */
     margin-bottom: 0.05em;
     font-weight: 200;
 }
 
 .name-last { 
     display: block;
-    color: rgba(255, 255, 255, 0.85);
+    color: rgba(26, 26, 26, 0.85); /* COULEUR NOIRE */
     font-weight: 400;
     letter-spacing: 0.05em;
 }
@@ -99,9 +100,9 @@ body {
     font-weight: 300;
     letter-spacing: 0.4em;
     text-transform: uppercase;
-    color: rgba(255, 255, 255, 0.5);
+    color: rgba(26, 26, 26, 0.5); /* COULEUR NOIRE */
     margin-top: 2.5rem;
-    font-family: 'Cormorant Garamond', serif;
+    font-family: 'Velvetyne', serif; /* TYPO EN NOIR ACTIF */
     opacity: 0;
     animation: gentleFadeIn 0.8s ease forwards 0.7s;
 }
@@ -129,7 +130,7 @@ body {
     bottom: 3rem; 
     left: 50%;
     transform: translateX(-50%);
-    color: rgba(255, 255, 255, 0.5); 
+    color: rgba(26, 26, 26, 0.5); /* COULEUR NOIRE */
     font-size: 0.7rem; 
     letter-spacing: 3px; 
     opacity: 0; 
@@ -142,47 +143,26 @@ body {
     display: block; 
     width: 1px; 
     height: 50px; 
-    background: linear-gradient(180deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.5) 100%); 
+    background: linear-gradient(180deg, rgba(26,26,26,0) 0%, rgba(26,26,26,0.5) 100%); /* LIGNE NOIRE */
     margin: 0 auto 1rem; 
     animation: scrollLine 2s ease infinite 5s; 
 }
 
 /* HEADER */
-/* ... (code précédent inchangé) ... */
-
-/* HEADER */
 header { 
     position: fixed; 
     top: 0; 
     left: 0; 
     right: 0; 
-    background: rgba(0, 0, 0, 0.6); 
+    /* ADAPTATION POUR LE FOND BLANC DE LA PHASE 1 */
+    background: rgba(255, 255, 255, 0.8); 
     backdrop-filter: blur(10px); 
     padding: 1.5rem 3rem; 
     display: flex; 
     justify-content: space-between; 
     align-items: center; 
     z-index: 100; 
-    border-bottom: 1px solid rgba(255, 255, 255, 0.05); 
-    transition: all 0.3s ease; 
-}
-
-/* ... (code précédent) ... */
-
-/* HEADER */
-header { 
-    position: fixed; 
-    top: 0; 
-    left: 0; 
-    right: 0; 
-    background: rgba(0, 0, 0, 0.6); 
-    backdrop-filter: blur(10px); 
-    padding: 1.5rem 3rem; 
-    display: flex; 
-    justify-content: space-between; 
-    align-items: center; 
-    z-index: 100; 
-    border-bottom: 1px solid rgba(255, 255, 255, 0.05); 
+    border-bottom: 1px solid rgba(0, 0, 0, 0.05); 
     transition: all 0.3s ease; 
 }
 
@@ -199,7 +179,7 @@ header.scrolled .admin-btn { border-color: #1a1a1a; }
 
 /* CORRECTION BANDEAU NOIR PHASE 2/3 (C'est la priorité absolue) */
 header.phase2-header {
-    background: #000000 !important; /* Force le fond noir */
+    background: #000000 !important; /* Force le fond noir pour le scroll */
     border-bottom: 1px solid rgba(255, 255, 255, 0.1) !important;
 }
 header.phase2-header .logo, 
@@ -209,13 +189,11 @@ header.phase2-header .admin-btn {
 }
 header.phase2-header .admin-btn { border-color: rgba(255, 255, 255, 0.5) !important; }
 
-/* ... (code restant) ... */
-
 .logo { 
     font-size: 0.9rem; 
     font-weight: 300; 
     letter-spacing: 3px; 
-    color: rgba(255, 255, 255, 0.8); 
+    color: rgba(26, 26, 26, 0.8); /* Texte en noir sur fond blanc */
     transition: color 0.3s ease;
     font-family: 'Cormorant Garamond', serif;
     text-decoration: none;
@@ -229,7 +207,7 @@ header.phase2-header .admin-btn { border-color: rgba(255, 255, 255, 0.5) !import
 
 .school { 
     font-size: 0.75rem; 
-    color: rgba(255, 255, 255, 0.4); 
+    color: rgba(26, 26, 26, 0.4); /* Texte en noir sur fond blanc */
     font-weight: 300; 
     letter-spacing: 2px; 
     transition: color 0.3s ease; 
@@ -237,8 +215,8 @@ header.phase2-header .admin-btn { border-color: rgba(255, 255, 255, 0.5) !import
 
 .admin-btn { 
     background: transparent; 
-    border: 1px solid rgba(255, 255, 255, 0.2); 
-    color: rgba(255, 255, 255, 0.7); 
+    border: 1px solid rgba(26, 26, 26, 0.2); /* Bordure noire */
+    color: rgba(26, 26, 26, 0.7); /* Texte en noir */
     padding: 0.5rem 1rem; 
     font-size: 0.7rem; 
     cursor: pointer; 
@@ -249,8 +227,8 @@ header.phase2-header .admin-btn { border-color: rgba(255, 255, 255, 0.5) !import
 }
 
 .admin-btn:hover { 
-    background: rgba(255, 255, 255, 0.1); 
-    border-color: rgba(255, 255, 255, 0.5);
+    background: rgba(26, 26, 26, 0.05); 
+    border-color: rgba(26, 26, 26, 0.5);
 }
 
 header.scrolled .admin-btn:hover { 
@@ -412,7 +390,7 @@ header.scrolled .admin-btn:hover {
 
 /* PROJECTS SECTION */
 .projects-section { 
-    background: #f5f5f5; 
+    background: #f5f5f5; /* Rétablit un fond pour la section projets après le défilement */
     min-height: 100vh; 
     padding-top: 100px; 
     position: relative; 
@@ -551,8 +529,8 @@ header.scrolled .admin-btn:hover {
         width: 90%;
         text-align: center;
         padding: 2rem;
-        background: rgba(0, 0, 0, 0.4); 
-        backdrop-filter: blur(10px);
+        background: rgba(255, 255, 255, 0.7); /* Fond blanc semi-transparent sur mobile */
+        backdrop-filter: blur(5px);
         border-radius: 10px;
         margin: 0 auto;
     }
