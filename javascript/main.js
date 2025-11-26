@@ -3,7 +3,7 @@
 import { setRendererToCanvasSize, adjustCameraForScreen, updateMousePosition } from './utils.js';
 import { 
     initPhase1, updatePhase1, setAcceleratingState, 
-    hasExploded, checkTrainIntersection, isMobile,
+    hasExploded, checkTrainIntersection, isMobile, // <-- isMobile est importé
     createFallingCube, setMouseNormalizedX, setMouseNormalizedY,
     preloadModel, preloadCubeTextures, haussmannBuilding 
 } from './phase1Train.js';
@@ -100,6 +100,9 @@ scene.add(light2);
 // MODIFICATION: Ajustement de l'offset Z pour la nouvelle base de 18.0 dans utils.js.
 // Base Phase 2/3 (desktop): 10. Position cible mobile: 18.0. Offset: 18.0 - 10.0 = 8.0.
 const MOBILE_Z_OFFSET = window.innerWidth <= 480 ? 8.0 : 0; 
+
+// NOUVELLE CONSTANTE : Position Z optimale pour le zoom Plein Écran Phase 3 sur mobile
+const PHASE3_MOBILE_ZOOM_Z = 5.0; // Distance plus proche pour l'effet Plein Écran mobile
 
 // Les offsets Y sont remis à zéro car le cube (Phase 1) est désormais masqué sur mobile.
 const MOBILE_TEXT_Y_POS = isMobile ? 0 : 0; 
@@ -367,7 +370,7 @@ function animate() {
     if (phase1to2Transition > 0 && scroll3dSection) { 
         phase2Group.visible = true;
         
-        // MODIFICATION : Utiliser l'offset Z mis à jour (10 + 8.0 = 18.0)
+        // Position de la caméra pour Phase 2 (synchronisée avec Phase 1/Tapis)
         camera.position.set(0, 0, 10 + MOBILE_Z_OFFSET); 
         camera.lookAt(0, 0, 0);
 
@@ -393,8 +396,12 @@ function animate() {
         
         setPhase3Active(true, canvas);
         
-        // MODIFICATION : Utiliser l'offset Z mis à jour (10 + 8.0 = 18.0)
-        camera.position.set(0, 0, 10 + MOBILE_Z_OFFSET);
+        // DÉFINITION DE LA POSITION Z DE LA CAMÉRA POUR LA PHASE 3
+        // Position de zoom rapprochée sur mobile (PHASE3_MOBILE_ZOOM_Z),
+        // Position synchronisée sur desktop.
+        const phase3Z = isMobile ? PHASE3_MOBILE_ZOOM_Z : 10 + MOBILE_Z_OFFSET;
+        
+        camera.position.set(0, 0, phase3Z);
         camera.lookAt(0, 0, 0);
         
         const phase3Progress = Math.min(1, (phase2to3Transition - 0.2) / 0.8);
