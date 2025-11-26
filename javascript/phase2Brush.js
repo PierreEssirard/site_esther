@@ -46,7 +46,8 @@ export function initPhase2(phase2Group) {
 
     const fontLoader = new THREE.FontLoader();
     fontLoader.load('https://threejs.org/examples/fonts/gentilis_bold.typeface.json', function (font) {
-        const textShape = font.generateShapes('Mes dessins', 3.5); 
+        // MODIFICATION: Réduction de la taille du texte de 3.5 à 2.0
+        const textShape = font.generateShapes('Mes dessins', 2.0); 
         const geometry = new THREE.ShapeGeometry(textShape);
         geometry.computeBoundingBox();
         const xMin = geometry.boundingBox.min.x;
@@ -114,6 +115,7 @@ export function initPhase2(phase2Group) {
                 s.endP = s.endDist / totalPathLength;
             });
         }
+        // Position par défaut
         phase2Group.position.y = -1; 
     });
 }

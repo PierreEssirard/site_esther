@@ -8,7 +8,7 @@ export let hasExploded = false;
 let fastLapCount = 0; 
 let lapStarted = false;
 let particles = []; 
-let haussmannBuilding = null;
+export let haussmannBuilding = null; // Rendre exportable pour l'ajustement dans main.js
 export let mouseNormalizedX = 0; 
 export let mouseNormalizedY = -1; 
 let hasBeenTouched = false;
@@ -132,8 +132,9 @@ function createSimpleSuspendedCube() {
     cube.userData.isRotating = true;
     sculpture.add(cube);
     
-    // CORRECTION : Déplacer le cube plus au centre (position 0) ou légèrement à gauche (position -2)
-    sculpture.position.set(-5, 0, 0); // Position du cube Haussmann
+    // MODIFICATION: Positionner le cube au centre (0, 0, 0). Sa position finale
+    // (Y vertical pour l'alignement) sera gérée dans main.js.
+    sculpture.position.set(-5, 0, 0); 
     sculpture.userData.isCube = true;
     sculpture.userData.fixedScale = 1.0; 
     
@@ -245,6 +246,7 @@ export function explodeTrain(phase1Group) {
     setTimeout(() => { 
         haussmannBuilding = createHaussmannBuilding(); 
         phase1Group.add(haussmannBuilding); 
+        // L'ajustement de la position Y sera fait dans main.js après l'explosion.
     }, 1000); 
 }
 
@@ -325,6 +327,7 @@ export function updatePhase1(phase1Group, globalParticlesGroup, fallingCubes) {
                 cubeMesh.rotation.x += 0.003;
                 cubeMesh.rotation.z += 0.003;
             }
+            // La position Y est maintenant gérée dans main.js pour la responsivité
         }
     }
 }

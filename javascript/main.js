@@ -5,13 +5,13 @@ import {
     initPhase1, updatePhase1, setAcceleratingState, 
     hasExploded, checkTrainIntersection, isMobile,
     createFallingCube, setMouseNormalizedX, setMouseNormalizedY,
-    preloadModel, preloadCubeTextures // NOUVEAU
+    preloadModel, preloadCubeTextures, haussmannBuilding 
 } from './phase1Train.js';
 import { initPhase2, updatePhase2 } from './phase2Brush.js';
 import { 
     initPhase3, updateCarouselPhase3, updateImageBandPhase3, 
     setPhase3Active, updateMousePosition3D, checkHoveredImage,
-    mouse3D, preloadCarouselTextures // NOUVEAU
+    mouse3D, preloadCarouselTextures 
 } from './phase3Carousel.js';
 
 // ==========================================================
@@ -102,6 +102,12 @@ scene.add(light2);
 // On utilise 10 + 10 = 20 pour la cohérence.
 const MOBILE_Z_OFFSET = window.innerWidth <= 480 ? 10.0 : 0; 
 
+// AJOUT: Position verticale pour le cube Haussmann sur mobile après explosion
+// On décale le cube vers le haut (Y positif)
+const MOBILE_CUBE_Y_POS = isMobile ? 2.5 : 0; 
+// On décale le texte "Mes dessins" vers le bas (Y négatif) pour se placer sous le cube
+const MOBILE_TEXT_Y_POS = isMobile ? -3.0 : 0;
+
 // ==========================================================
 // 2. GROUPES DE SCÈNE
 // ==========================================================
@@ -160,6 +166,7 @@ async function initializeApp() {
         // Initialiser les phases
         initPhase1(phase1Group);
         initPhase2(phase2Group);
+        phase2Group.position.y = MOBILE_TEXT_Y_POS; // Décalage initial pour Phase 2
         initPhase3(phase3Group);
         
         // Configuration initiale
@@ -342,6 +349,12 @@ function animate() {
     } else { 
         // CORRECTION: Masque phase1Group pour ne pas le voir dans phase 2 et 3
         phase1Group.visible = false; 
+    }
+
+    // AJOUT: Positionnement du cube Haussmann après l'explosion pour le mobile
+    if (hasExploded && haussmannBuilding) {
+        // Positionne le cube en haut de l'écran (Y positif)
+        haussmannBuilding.position.y = MOBILE_CUBE_Y_POS;
     }
 
     // Gère la création continue des cubes après l'explosion, indépendamment du scroll (CORRECTIF)
