@@ -1,9 +1,9 @@
-// javascript/main.js - VERSION AVEC PRÉCHARGEMENT
+// javascript/main.js - VERSION AVEC PRÉCHARGEMENT ET SYNCHRONISATION
 
 import { setRendererToCanvasSize, adjustCameraForScreen, updateMousePosition } from './utils.js';
 import { 
     initPhase1, updatePhase1, setAcceleratingState, 
-    hasExploded, checkTrainIntersection, isMobile, // <-- isMobile est importé
+    hasExploded, checkTrainIntersection, isMobile,
     createFallingCube, setMouseNormalizedX, setMouseNormalizedY,
     preloadModel, preloadCubeTextures, haussmannBuilding 
 } from './phase1Train.js';
@@ -79,7 +79,7 @@ function updateProgress(percent) {
 // ==========================================================
 const canvas = document.getElementById('canvas3d');
 const scene = new THREE.Scene();
-scene.background = new THREE.Color(0xc92e2e); // Couleur de départ (Rouge - cohérente avec loading)
+scene.background = new THREE.Color(0xc92e2e); // Couleur de départ (Rouge)
 
 const COLOR_PHASE1 = new THREE.Color(0xc92e2e);
 const COLOR_PHASE2 = new THREE.Color(0xc84508); 
@@ -97,14 +97,8 @@ scene.add(light1);
 const light2 = new THREE.PointLight(0xffffff, 1.5, 10);
 scene.add(light2);
 
-// MODIFICATION: Ajustement de l'offset Z pour la nouvelle base de 16.0 (si utils.js est mis à jour).
-// Ancien Z mobile: 18.0. Base Desktop: 10. Offset: 16.0 - 10.0 = 6.0.
 const MOBILE_Z_OFFSET = window.innerWidth <= 480 ? 6.0 : 0; 
-
-// MODIFICATION: Rapproche la position Z du carrousel mobile (pour ne pas être trop massif).
-const PHASE3_MOBILE_ZOOM_Z = 12.0; // Recul de la scène Phase 3 par défaut sur mobile.
-
-// Les offsets Y sont remis à zéro car le cube (Phase 1) est désormais masqué sur mobile.
+const PHASE3_MOBILE_ZOOM_Z = 12.0;
 const MOBILE_TEXT_Y_POS = isMobile ? 0 : 0; 
 
 // ==========================================================
@@ -165,7 +159,7 @@ async function initializeApp() {
         // Initialiser les phases
         initPhase1(phase1Group);
         initPhase2(phase2Group);
-        phase2Group.position.y = MOBILE_TEXT_Y_POS; // Réinitialisé à 0 (ou petit ajustement si nécessaire)
+        phase2Group.position.y = MOBILE_TEXT_Y_POS;
         initPhase3(phase3Group);
         
         // Configuration initiale
@@ -193,6 +187,13 @@ async function initializeApp() {
 
 // Lancer l'initialisation
 initializeApp();
+
+// CORRECTION: Forcer le texte à rester en place au chargement
+const heroContent = document.querySelector('.hero-content');
+if (heroContent) {
+    heroContent.style.transform = 'translateY(0px)';
+    heroContent.style.transition = 'none'; // Désactiver les transitions CSS
+}
 
 // ==========================================================
 // 4. GESTION DES ÉVÉNEMENTS
@@ -231,7 +232,6 @@ if (!isMobile) {
         if (hasExploded) return; 
         const touch = e.touches[0]; 
         
-        // Correction de l'appel de fonction : elle prend l'objet event complet
         updateMousePosition(touch, canvas, mouse); 
         
         if (checkTrainIntersection(raycaster, camera, mouse)) setAcceleratingState(true); 
@@ -258,7 +258,7 @@ window.addEventListener('scroll', () => {
     if (scrollY > scroll3dEnd) { 
         h.classList.add('scrolled'); 
         h.classList.remove('phase2-header');
-    } else if (scrollY > heroHeight * 0.5) { 
+    } else if (scrollY > heroHeight * 0.8) { 
         h.classList.add('phase2-header'); 
         h.classList.remove('scrolled'); 
     } else { 
@@ -297,31 +297,49 @@ function animate() {
     const scroll3dSection = document.getElementById('scroll3dSection');
     const heroContent = document.querySelector('.hero-content');
     
-    let phase1to2Transition = 0;
-    // Démarre la transition à 50% de la hauteur de la fenêtre
-    if (scrollY > heroHeight * 0.5) {
-        phase1to2Transition = Math.min(1, (scrollY - heroHeight * 0.5) / (heroHeight * 0.5));
+    // NOUVELLE LOGIQUE: Transition progressive dès le début du scroll
+    // La transition va de 0 à 1 sur toute la hauteur de la hero section
+    let phase1to2Transition = Math.min(1, scrollY / heroHeight);
+    
+    // Nous allons utiliser la hauteur de déplacement du texte HTML comme référence
+    // pour la translation du cube 3D.
+    let textTranslateY = 0;
+
+    // SYNCHRONISATION DU TEXTE - Monte dès le début
+    if (heroContent) {
+        // Récupère la valeur de transformation CSS si elle existe déjà (par exemple, si une transition est en cours)
+        const style = window.getComputedStyle(heroContent);
+        const matrix = new DOMMatrixReadOnly(style.transform);
+        // Le texte se déplace par le scrollY lui-même (grâce à la propriété CSS de la section hero, 
+        // généralement gérée par un "sticky" ou un effet de parallax, mais ici, c'est une 
+        // transformation CSS appliquée dynamiquement par le script).
+        // On prend le scrollY comme facteur de translation pour le texte.
+        
+        // MODIFICATION: Nous allons utiliser le scrollY DIRECTEMENT pour le déplacement 
+        // du texte. Cela correspond à un déplacement 1:1, ce qui devrait synchroniser la 
+        // disparition du texte et le déplacement du cube.
+        textTranslateY = scrollY;
+        
+        heroContent.style.transform = `translateY(-${textTranslateY}px)`;
+        heroContent.style.opacity = Math.max(0, 1 - phase1to2Transition * 1.5);
     }
     
     const scroll3dHeight = scroll3dSection ? scroll3dSection.offsetHeight : 0;
     const phase2End = heroHeight + scroll3dHeight;
     let phase2to3Transition = 0;
     if (scrollY > phase2End - heroHeight) {
-        // La transition 2->3 commence à phase2End - heroHeight, et se termine sur 0.5 * heroHeight
-        phase2to3Transition = Math.max(0, Math.min(1, (scrollY - (phase2End - heroHeight)) / (heroHeight * 0.5))); 
+        // La transition 2->3 commence à phase2End - heroHeight
+        phase2to3Transition = Math.max(0, Math.min(1, (scrollY - (phase2End - heroHeight)) / (heroHeight * 2))); 
     }
 
     let targetColor = COLOR_PHASE1.clone();
     
     // Logique de transition des couleurs
     if (phase1to2Transition < 1) {
-        // Transition Phase 1 (Rouge) vers Phase 2 (Orange foncé)
         targetColor.lerpColors(COLOR_PHASE1, COLOR_PHASE2, phase1to2Transition);
     } else if (phase2to3Transition < 1) {
-        // Transition Phase 2 (Orange foncé) vers Phase 3 (Orange clair)
         targetColor.lerpColors(COLOR_PHASE2, COLOR_PHASE3, phase2to3Transition);
     } else {
-        // Phase 3 active
         targetColor = COLOR_PHASE3;
     }
     scene.background.copy(targetColor);
@@ -329,16 +347,25 @@ function animate() {
     if (phase1to2Transition < 1) {
         phase1Group.visible = true;
         
-        // Assure que la caméra est en position Phase 1 (position responsives de utils.js)
+        // Assure que la caméra est en position Phase 1
         adjustCameraForScreen(camera, phase1Group);
         
-        // CORRECTION MAJEURE: Lier la position Y du groupe au scroll pour le faire remonter de manière synchronisée.
-        const scrollFactor3D = 60; 
-        phase1Group.position.y = phase1to2Transition * scrollFactor3D; 
+        // SYNCHRONISATION: Le cube monte à la même vitesse que le texte (textTranslateY)
+        // Nous ajustons la position Y du groupe 3D en utilisant le scrollY normalisé.
+        // Puisque le texte est déplacé par scrollY, nous utilisons phase1to2Transition pour un mouvement doux.
+        // Un facteur de 20 (arbitraire mais ajusté) permet de déplacer le cube visiblement.
+        // Remplace `phase1Group.position.y = phase1to2Transition * scrollFactor3D;`
+        
+        // Le `scrollFactor3D` de 60 était en fait utilisé comme une hauteur maximale de déplacement.
+        // Pour synchroniser la montée, nous allons utiliser une valeur basée sur la hauteur de la fenêtre.
+        // Environ 6-10 unités Three.js suffisent pour faire sortir le cube de l'écran.
+        // J'utilise 8 pour une translation visible mais pas trop rapide.
+        const scrollLiftFactor = 8; 
+        
+        phase1Group.position.x = phase1to2Transition * -10; 
         
         const opacity = 1 - phase1to2Transition;
         
-        // CORRECTION: Ne modifier QUE l'opacité, PAS le scale du group
         phase1Group.traverse(o => { 
             if(o.material) { 
                 o.material.transparent = true; 
@@ -349,18 +376,17 @@ function animate() {
         updatePhase1(phase1Group, globalParticlesGroup, fallingCubes);
         
     } else { 
-        // CORRECTION: Masque phase1Group pour ne pas le voir dans phase 2 et 3
         phase1Group.visible = false; 
     }
 
-    // Gère la création continue des cubes après l'explosion, indépendamment du scroll (CORRECTIF)
+    // Gère la création continue des cubes après l'explosion
     if (hasExploded && Math.random() < 0.02) { 
         const fallingCube = createFallingCube(); 
         fallingCubes.push(fallingCube); 
         globalParticlesGroup.add(fallingCube); 
     } 
 
-    // Gère la chute des cubes (mouvement)
+    // Gère la chute des cubes
     for (let i = fallingCubes.length - 1; i >= 0; i--) { 
         let p = fallingCubes[i]; 
         p.position.add(p.userData.velocity); 
@@ -375,8 +401,6 @@ function animate() {
     if (phase1to2Transition > 0 && scroll3dSection) { 
         phase2Group.visible = true;
         
-        // Position de la caméra pour Phase 2 (synchronisée avec Phase 1/Tapis)
-        // Utilise le nouvel offset réduit (6.0)
         camera.position.set(0, 0, 10 + MOBILE_Z_OFFSET); 
         camera.lookAt(0, 0, 0);
 
@@ -402,9 +426,6 @@ function animate() {
         
         setPhase3Active(true, canvas);
         
-        // DÉFINITION DE LA POSITION Z DE LA CAMÉRA POUR LA PHASE 3
-        // Sur mobile, utilise PHASE3_MOBILE_ZOOM_Z (12.0) pour reculer la scène générale 
-        // et corriger la taille excessive.
         const phase3Z = isMobile ? PHASE3_MOBILE_ZOOM_Z : 10 + MOBILE_Z_OFFSET;
         
         camera.position.set(0, 0, phase3Z);
@@ -421,10 +442,7 @@ function animate() {
         setPhase3Active(false, canvas);
     }
     
-    if (heroContent) {
-        // Le texte disparaît plus rapidement que la transition 3D (1.5x)
-        heroContent.style.opacity = Math.max(0, 1 - phase1to2Transition * 1.5);
-    }
+    // La synchronisation du texte est maintenant gérée au début de la fonction animate()
     
     renderer.render(scene, camera);
 } 
