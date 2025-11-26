@@ -82,7 +82,7 @@ const scene = new THREE.Scene();
 scene.background = new THREE.Color(0xc92e2e); // Couleur de départ (Rouge - cohérente avec loading)
 
 const COLOR_PHASE1 = new THREE.Color(0xc92e2e);
-const COLOR_PHASE2 = new THREE.Color(0xdb5a15);
+const COLOR_PHASE2 = new THREE.Color(0xc84508); 
 const COLOR_PHASE3 = new THREE.Color(0xf57e43);
 
 const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
@@ -307,16 +307,21 @@ function animate() {
     const phase2End = heroHeight + scroll3dHeight;
     let phase2to3Transition = 0;
     if (scrollY > phase2End - heroHeight) {
+        // La transition 2->3 commence à phase2End - heroHeight, et se termine sur 0.5 * heroHeight
         phase2to3Transition = Math.max(0, Math.min(1, (scrollY - (phase2End - heroHeight)) / (heroHeight * 0.5))); 
     }
 
     let targetColor = COLOR_PHASE1.clone();
     
+    // Logique de transition des couleurs
     if (phase1to2Transition < 1) {
+        // Transition Phase 1 (Rouge) vers Phase 2 (Orange foncé)
         targetColor.lerpColors(COLOR_PHASE1, COLOR_PHASE2, phase1to2Transition);
     } else if (phase2to3Transition < 1) {
-        targetColor.lerpColors(COLOR_PHASE2, COLOR_PHASE3, phase1to2Transition);
+        // Transition Phase 2 (Orange foncé) vers Phase 3 (Orange clair)
+        targetColor.lerpColors(COLOR_PHASE2, COLOR_PHASE3, phase2to3Transition);
     } else {
+        // Phase 3 active
         targetColor = COLOR_PHASE3;
     }
     scene.background.copy(targetColor);
