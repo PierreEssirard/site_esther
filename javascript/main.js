@@ -13,6 +13,8 @@ import {
     setPhase3Active, updateMousePosition3D, checkHoveredImage,
     mouse3D, preloadCarouselTextures 
 } from './phase3Carousel.js';
+// NOUVEAU: Import du manager d'administration
+import { initAdmin, getAdminStatus } from './adminManager.js'; 
 
 // ==========================================================
 // 0. ÉCRAN DE CHARGEMENT
@@ -275,10 +277,18 @@ window.addEventListener('scroll', () => {
 const adminBtn = document.getElementById('adminBtn'); 
 const adminModal = document.getElementById('adminModal'); 
 const closeModal = document.getElementById('closeModal');
-if (adminBtn) { 
-    adminBtn.addEventListener('click', () => adminModal.classList.add('active')); 
-    closeModal.addEventListener('click', () => adminModal.classList.remove('active')); 
+
+// ANCIENNE LOGIQUE SUPPRIMÉE ET DÉPLACÉE VERS adminManager.js
+// if (adminBtn) { 
+//     adminBtn.addEventListener('click', () => adminModal.classList.add('active')); 
+//     closeModal.addEventListener('click', () => adminModal.classList.remove('active')); 
+// }
+
+// NOUVEAU: Initialisation de la logique du panneau d'administration
+if (adminBtn && adminModal && closeModal) {
+    initAdmin(adminBtn, adminModal, closeModal);
 }
+
 
 // ==========================================================
 // 5. BOUCLE D'ANIMATION PRINCIPALE

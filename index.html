@@ -12,7 +12,13 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700;800;900&family=Cormorant+Garamond:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     
+    <!-- Ajout de Font Awesome pour les icônes (rend l'interface plus ludique) -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    
     <link rel="stylesheet" href="style.css">
+
+    <!-- LE BLOC STYLE PRÉCÉDENT EST SUPPRIMÉ ICI -->
+
 </head>
 <body>
     <header id="header">
@@ -52,29 +58,133 @@
     <div class="modal-overlay" id="adminModal">
         <div class="modal">
             <button class="modal-close" id="closeModal">&times;</button>
+            
+            <!-- CONTENEUR DE CONNEXION PAR CODE PIN -->
             <div class="pin-screen" id="pinScreen">
-                <h2>Code Admin</h2>
+                <h2>Accès Sécurisé</h2>
+                <p class="pin-instructions">Veuillez entrer le code à 4 chiffres.</p>
                 <div class="pin-input-container">
-                    <input type="password" maxlength="1" class="pin-input">
-                    <input type="password" maxlength="1" class="pin-input">
-                    <input type="password" maxlength="1" class="pin-input">
-                    <input type="password" maxlength="1" class="pin-input">
+                    <input type="password" maxlength="1" class="pin-input" autocomplete="off" inputmode="numeric">
+                    <input type="password" maxlength="1" class="pin-input" autocomplete="off" inputmode="numeric">
+                    <input type="password" maxlength="1" class="pin-input" autocomplete="off" inputmode="numeric">
+                    <input type="password" maxlength="1" class="pin-input" autocomplete="off" inputmode="numeric">
                 </div>
-                <div class="pin-error" id="pinError">Code incorrect</div>
+                <div class="pin-error" id="pinError" style="opacity:0;"></div>
             </div>
-            <div class="admin-panel" id="adminPanel">
-                <h2>Ajouter un Projet</h2>
-                <form class="admin-form" id="projectForm">
-                    <input type="text" id="projectTitle" placeholder="Titre du projet" required>
-                    <textarea id="projectDesc" placeholder="Description du projet" required></textarea>
-                    <input type="file" id="projectImage" accept="image/*" required>
-                    <img class="image-preview" id="imagePreview">
-                    <button type="submit">Publier le Projet</button>
-                </form>
+            
+            <!-- CONTENEUR DU MENU MANAGER (Rendu plus ludique/interactif) -->
+            <div class="admin-panel" id="adminPanel" style="display:none;">
+                <h2 class="admin-title">Panneau d'Administration</h2>
+                
+                <!-- NAVIGATION PAR ONGLET -->
+                <div class="admin-tabs">
+                    <button class="tab-button active" data-tab="dashboard">
+                        <i class="fas fa-rocket"></i> Dashboard
+                    </button>
+                    <button class="tab-button" data-tab="add-project">
+                        <i class="fas fa-plus-circle"></i> Ajouter Projet
+                    </button>
+                    <button class="tab-button" data-tab="settings">
+                        <i class="fas fa-cogs"></i> Réglages 3D
+                    </button>
+                </div>
+
+                <!-- CONTENU DES ONGLETS -->
+                <div class="tab-content active" id="dashboard">
+                    <h3>Statut du Portfolio</h3>
+                    <div class="stat-cards">
+                        <div class="card">
+                            <i class="fas fa-images"></i>
+                            <p>Projets Publiés : <span>7</span></p>
+                        </div>
+                        <div class="card">
+                            <i class="fas fa-eye"></i>
+                            <p>Vues Totales : <span>1,245</span></p>
+                        </div>
+                        <div class="card">
+                            <i class="fas fa-pencil-ruler"></i>
+                            <p>Dernière Mise à Jour : <span>Aujourd'hui</span></p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="tab-content" id="add-project" style="display:none;">
+                    <h3>Ajouter un Nouveau Projet</h3>
+                    <form class="admin-form" id="projectForm">
+                        <div class="form-group">
+                            <label for="projectTitle"><i class="fas fa-heading"></i> Titre</label>
+                            <input type="text" id="projectTitle" placeholder="Titre du projet" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="projectDesc"><i class="fas fa-align-left"></i> Description</label>
+                            <textarea id="projectDesc" placeholder="Description du projet" required></textarea>
+                        </div>
+                        <div class="form-group file-upload">
+                            <label for="projectImage" class="file-label"><i class="fas fa-cloud-upload-alt"></i> Choisir Image</label>
+                            <input type="file" id="projectImage" accept="image/*" required>
+                        </div>
+                        <img class="image-preview" id="imagePreview">
+                        <button type="submit" class="submit-btn"><i class="fas fa-paper-plane"></i> Publier le Projet</button>
+                    </form>
+                </div>
+
+                <div class="tab-content" id="settings" style="display:none;">
+                    <h3>Contrôles 3D</h3>
+                    <p>Réglages pour la vitesse du train ou la couleur de fond.</p>
+                    <div class="setting-group">
+                        <label for="trainSpeed">Vitesse du Train :</label>
+                        <input type="range" id="trainSpeed" min="0.001" max="0.1" step="0.001">
+                        <span id="trainSpeedValue">0.001</span>
+                    </div>
+                    <button class="reset-btn"><i class="fas fa-undo"></i> Réinitialiser le Train</button>
+                </div>
             </div>
         </div>
     </div>
 
     <script type="module" src="javascript/main.js"></script>
+    
+    <script>
+        // Logique de bascule des onglets (pour rendre l'interface fonctionnelle sans JS externe)
+        document.addEventListener('DOMContentLoaded', () => {
+            const tabs = document.querySelectorAll('.admin-tabs .tab-button');
+            const contents = document.querySelectorAll('.admin-panel .tab-content');
+
+            tabs.forEach(tab => {
+                tab.addEventListener('click', () => {
+                    const targetId = tab.getAttribute('data-tab');
+
+                    // Désactiver tous les onglets et contenus
+                    tabs.forEach(t => t.classList.remove('active'));
+                    contents.forEach(c => c.style.display = 'none');
+
+                    // Activer l'onglet cliqué et le contenu correspondant
+                    tab.classList.add('active');
+                    document.getElementById(targetId).style.display = 'block';
+                });
+            });
+            
+            // Logique de prévisualisation d'image (pour l'onglet Ajouter Projet)
+            const projectImageInput = document.getElementById('projectImage');
+            const imagePreview = document.getElementById('imagePreview');
+            
+            if (projectImageInput && imagePreview) {
+                projectImageInput.addEventListener('change', function() {
+                    const file = this.files[0];
+                    if (file) {
+                        const reader = new FileReader();
+                        reader.onload = function(e) {
+                            imagePreview.src = e.target.result;
+                            imagePreview.style.display = 'block';
+                        };
+                        reader.readAsDataURL(file);
+                    } else {
+                        imagePreview.src = '#';
+                        imagePreview.style.display = 'none';
+                    }
+                });
+            }
+        });
+    </script>
 </body>
 </html>
