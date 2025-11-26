@@ -83,7 +83,7 @@ scene.background = new THREE.Color(0xc92e2e); // Couleur de départ (Rouge - coh
 
 const COLOR_PHASE1 = new THREE.Color(0xc92e2e);
 const COLOR_PHASE2 = new THREE.Color(0xdb5a15);
-const COLOR_PHASE3 = new THREE.Color(0xf5ae43);
+const COLOR_PHASE3 = new THREE.Color(0xf57e43);
 
 const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
@@ -239,7 +239,7 @@ window.addEventListener('scroll', () => {
     if (scrollY > scroll3dEnd) { 
         h.classList.add('scrolled'); 
         h.classList.remove('phase2-header');
-    } else if (scrollY > heroHeight - 100) { 
+    } else if (scrollY > heroHeight * 0.5) { 
         h.classList.add('phase2-header'); 
         h.classList.remove('scrolled'); 
     } else { 
@@ -279,6 +279,7 @@ function animate() {
     const heroContent = document.querySelector('.hero-content');
     
     let phase1to2Transition = 0;
+    // Démarre la transition à 50% de la hauteur de la fenêtre
     if (scrollY > heroHeight * 0.5) {
         phase1to2Transition = Math.min(1, (scrollY - heroHeight * 0.5) / (heroHeight * 0.5));
     }
@@ -303,9 +304,18 @@ function animate() {
     
     if (phase1to2Transition < 1) {
         phase1Group.visible = true;
+        
+        // Assure que la caméra est en position Phase 1 (position responsives de utils.js)
+        adjustCameraForScreen(camera, phase1Group);
+        
+        // CORRECTION MAJEURE: Lier la position Y du groupe au scroll pour le faire remonter de manière synchronisée.
+        // Utilisation de -30 pour garantir que le cube sorte de la vue vers le haut, synchronisé avec le texte.
+        const scrollFactor3D = 60; 
+        phase1Group.position.y = phase1to2Transition * scrollFactor3D; 
+        
         const opacity = 1 - phase1to2Transition;
-        const pixelScale = (camera.position.z * Math.tan(THREE.MathUtils.degToRad(camera.fov/2)) * 2) / window.innerHeight;
-        phase1Group.position.y = scrollY * pixelScale * 0.9; 
+        
+        // CORRECTION: Ne modifier QUE l'opacité, PAS le scale du group
         phase1Group.traverse(o => { 
             if(o.material) { 
                 o.material.transparent = true; 
@@ -316,14 +326,18 @@ function animate() {
         updatePhase1(phase1Group, globalParticlesGroup, fallingCubes);
         
     } else { 
+        // CORRECTION: Masque phase1Group pour ne pas le voir dans phase 2 et 3
         phase1Group.visible = false; 
-        if (hasExploded && Math.random() < 0.02) { 
-            const fallingCube = createFallingCube(); 
-            fallingCubes.push(fallingCube); 
-            globalParticlesGroup.add(fallingCube); 
-        } 
     }
 
+    // Gère la création continue des cubes après l'explosion, indépendamment du scroll (CORRECTIF)
+    if (hasExploded && Math.random() < 0.02) { 
+        const fallingCube = createFallingCube(); 
+        fallingCubes.push(fallingCube); 
+        globalParticlesGroup.add(fallingCube); 
+    } 
+
+    // Gère la chute des cubes (mouvement)
     for (let i = fallingCubes.length - 1; i >= 0; i--) { 
         let p = fallingCubes[i]; 
         p.position.add(p.userData.velocity); 
@@ -338,6 +352,7 @@ function animate() {
     if (phase1to2Transition > 0 && scroll3dSection) { 
         phase2Group.visible = true;
         
+        // Position de la caméra pour la Phase 2
         camera.position.set(0, 0, 10);
         camera.lookAt(0, 0, 0);
 
@@ -363,6 +378,7 @@ function animate() {
         
         setPhase3Active(true, canvas);
         
+        // Position de la caméra pour la Phase 3
         camera.position.set(0, 0, 10);
         camera.lookAt(0, 0, 0);
         
@@ -378,6 +394,7 @@ function animate() {
     }
     
     if (heroContent) {
+        // Le texte disparaît plus rapidement que la transition 3D (1.5x)
         heroContent.style.opacity = Math.max(0, 1 - phase1to2Transition * 1.5);
     }
     

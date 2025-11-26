@@ -65,7 +65,7 @@ let cubeTexturesCache = [];
 let cubeTexturesLoaded = false;
 
 /**
- * NOUVELLE FONCTION: Précharge les textures du cube
+ * Précharge les textures du cube
  */
 export function preloadCubeTextures() {
     return new Promise((resolve) => {
@@ -76,6 +76,7 @@ export function preloadCubeTextures() {
             loader.load(
                 url,
                 (texture) => {
+                    texture.colorSpace = THREE.SRGBColorSpace;
                     cubeTexturesCache.push(texture);
                     loadedCount++;
                     
@@ -131,8 +132,10 @@ function createSimpleSuspendedCube() {
     cube.userData.isRotating = true;
     sculpture.add(cube);
     
-    sculpture.position.set(-6, -6, -6);
+    // CORRECTION : Déplacer le cube plus au centre (position 0) ou légèrement à gauche (position -2)
+    sculpture.position.set(-5, 0, 0); // Position du cube Haussmann
     sculpture.userData.isCube = true;
+    sculpture.userData.fixedScale = 1.0; 
     
     return sculpture;
 }
@@ -142,7 +145,7 @@ function createHaussmannBuilding() {
 }
 
 /**
- * NOUVELLE FONCTION: Précharge le modèle 3D avant l'initialisation
+ * Précharge le modèle 3D avant l'initialisation
  */
 export function preloadModel() {
     if (modelLoadPromise) return modelLoadPromise;
@@ -226,6 +229,7 @@ export function explodeTrain(phase1Group) {
     
     const explosionPosition = loadedModel ? modelContainer.position : new THREE.Vector3(-6, 0, 0);
     
+    // Création des particules
     for (let i = 0; i < 500; i++) {
         const v = new THREE.Vector3(
             (Math.random()-0.5)*8, 
@@ -237,9 +241,9 @@ export function explodeTrain(phase1Group) {
         phase1Group.add(p); 
     } 
     
+    // Apparition du cube Haussmann après un délai
     setTimeout(() => { 
         haussmannBuilding = createHaussmannBuilding(); 
-        haussmannBuilding.position.set(-5, 0, 0); 
         phase1Group.add(haussmannBuilding); 
     }, 1000); 
 }
@@ -250,6 +254,7 @@ export function explodeTrain(phase1Group) {
 
 export function updatePhase1(phase1Group, globalParticlesGroup, fallingCubes) {
     if (!hasExploded) {
+        // Logique du train 
         if (isAccelerating || hasBeenTouched) { 
             currentSpeed += (0.05 - currentSpeed) * 0.1;
         } else {
@@ -293,6 +298,9 @@ export function updatePhase1(phase1Group, globalParticlesGroup, fallingCubes) {
             modelContainer.position.y = Math.sin(Date.now() * 0.002) * 0.15; 
         }
     } else {
+        // LOGIQUE POST-EXPLOSION
+
+        // 1. Gestion des particules de l'explosion
         for (let i = particles.length - 1; i >= 0; i--) { 
             let p = particles[i]; 
             p.position.add(p.userData.velocity); 
@@ -304,20 +312,19 @@ export function updatePhase1(phase1Group, globalParticlesGroup, fallingCubes) {
                 particles.splice(i, 1); 
             } 
         }
-        
-        if (haussmannBuilding) { 
+
+        // 2. Gestion du cube Haussmann (Taille constante assurée)
+        if (haussmannBuilding) {
+            // Le scale est fixe à 1.0 car phase1Group.scale est fixe à 1.0 (voir utils.js)
+            haussmannBuilding.scale.setScalar(1.0); 
+            
             const cubeMesh = haussmannBuilding.children.find(child => child.userData.isRotating);
             
             if (cubeMesh) {
-                cubeMesh.rotation.y += 0.01; 
-                cubeMesh.rotation.x += 0.005;
+                cubeMesh.rotation.y += 0.001; 
+                cubeMesh.rotation.x += 0.003;
+                cubeMesh.rotation.z += 0.003;
             }
-            
-            if (Math.random() < 0.03) { 
-                const fallingCube = createFallingCube(); 
-                fallingCubes.push(fallingCube); 
-                globalParticlesGroup.add(fallingCube); 
-            } 
         }
     }
 }
@@ -330,15 +337,36 @@ export function setMouseNormalizedY(y) {
     mouseNormalizedY = y;
 }
 
+/**
+ * Crée un cube qui tombe, en utilisant maintenant les textures préchargées.
+ */
 export function createFallingCube() {
-    const colors = [0xa8d0ff, 0xf0c4df, 0xfff1a8];
+    // Utiliser les textures préchargées du grand cube
+    const materials = cubeTexturesCache.map(texture => {
+        // Nous clonons le matériau pour garantir que l'opacité individuelle
+        // et toute autre modification n'affectent pas les autres cubes.
+        const material = new THREE.MeshBasicMaterial({
+            map: texture,
+            transparent: true,
+            opacity: 0.9
+        }).clone();
+        return material;
+    });
+
+    // Fallback si les textures ne sont pas chargées (ne devrait pas arriver grâce au préchargement)
+    if (materials.length === 0) {
+        for (let i = 0; i < 6; i++) {
+            materials.push(new THREE.MeshBasicMaterial({
+                color: 0xf0c4df, // Couleur par défaut si la texture manque
+                transparent: true,
+                opacity: 0.9
+            }));
+        }
+    }
+    
     const cube = new THREE.Mesh(
         new THREE.BoxGeometry(0.2, 0.2, 0.2), 
-        new THREE.MeshBasicMaterial({ 
-            color: colors[Math.floor(Math.random() * colors.length)], 
-            transparent: true, 
-            opacity: 0.9 
-        })
+        materials // Utilise l'array de matériaux avec les textures
     );
     cube.position.set((Math.random() - 0.5) * 10, 6, (Math.random() - 0.5) * 5);
     cube.userData = { 
