@@ -28,8 +28,8 @@ export function adjustCameraForScreen(camera, phase1Group) {
     let cameraX = -1; // Position standard X (pour décentrer le tapis sur desktop)
 
     if (w <= 480) { 
-        // MODIFICATION: Augmentation de la distance Z à 20.0 pour un effet de 'très très petit'
-        baseCameraZ = 20.0; 
+        // MODIFICATION: Réduction du recul Z à 18.0 (pour que le tapis soit plus grand sur mobile)
+        baseCameraZ = 18.0; 
         
         // On recentre la caméra en X sur mobile
         cameraX = 0; 

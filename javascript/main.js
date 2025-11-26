@@ -97,16 +97,12 @@ scene.add(light1);
 const light2 = new THREE.PointLight(0xffffff, 1.5, 10);
 scene.add(light2);
 
-// MODIFICATION: Augmentation de l'offset Z pour amplifier la miniaturisation des phases 2 et 3.
-// Ceci suppose que utils.js met la base Phase 1 à Z=20.0. 
-// 10 (base desktop) + 14.0 = 24.0 (nouvelle position Z mobile).
-const MOBILE_Z_OFFSET = window.innerWidth <= 480 ? 14.0 : 0; 
+// MODIFICATION: Ajustement de l'offset Z pour la nouvelle base de 18.0 dans utils.js.
+// Base Phase 2/3 (desktop): 10. Position cible mobile: 18.0. Offset: 18.0 - 10.0 = 8.0.
+const MOBILE_Z_OFFSET = window.innerWidth <= 480 ? 8.0 : 0; 
 
-// MODIFICATION: Augmentation des offsets Y pour séparer le cube du texte "Mes dessins"
-// Décalage du cube vers le haut (Y positif)
-const MOBILE_CUBE_Y_POS = isMobile ? 3.5 : 0; 
-// Décalage du texte "Mes dessins" vers le bas (Y négatif) pour se placer sous le cube
-const MOBILE_TEXT_Y_POS = isMobile ? -4.5 : 0;
+// Les offsets Y sont remis à zéro car le cube (Phase 1) est désormais masqué sur mobile.
+const MOBILE_TEXT_Y_POS = isMobile ? 0 : 0; 
 
 // ==========================================================
 // 2. GROUPES DE SCÈNE
@@ -166,7 +162,7 @@ async function initializeApp() {
         // Initialiser les phases
         initPhase1(phase1Group);
         initPhase2(phase2Group);
-        phase2Group.position.y = MOBILE_TEXT_Y_POS; // Décalage initial pour Phase 2
+        phase2Group.position.y = MOBILE_TEXT_Y_POS; // Réinitialisé à 0 (ou petit ajustement si nécessaire)
         initPhase3(phase3Group);
         
         // Configuration initiale
@@ -326,11 +322,9 @@ function animate() {
         phase1Group.visible = true;
         
         // Assure que la caméra est en position Phase 1 (position responsives de utils.js)
-        // Ceci ajuste la position Z de la caméra sur mobile.
         adjustCameraForScreen(camera, phase1Group);
         
         // CORRECTION MAJEURE: Lier la position Y du groupe au scroll pour le faire remonter de manière synchronisée.
-        // Utilisation de -30 pour garantir que le cube sorte de la vue vers le haut, synchronisé avec le texte.
         const scrollFactor3D = 60; 
         phase1Group.position.y = phase1to2Transition * scrollFactor3D; 
         
@@ -349,12 +343,6 @@ function animate() {
     } else { 
         // CORRECTION: Masque phase1Group pour ne pas le voir dans phase 2 et 3
         phase1Group.visible = false; 
-    }
-
-    // AJOUT: Positionnement du cube Haussmann après l'explosion pour le mobile
-    if (hasExploded && haussmannBuilding) {
-        // Positionne le cube en haut de l'écran (Y positif)
-        haussmannBuilding.position.y = MOBILE_CUBE_Y_POS;
     }
 
     // Gère la création continue des cubes après l'explosion, indépendamment du scroll (CORRECTIF)
@@ -379,7 +367,7 @@ function animate() {
     if (phase1to2Transition > 0 && scroll3dSection) { 
         phase2Group.visible = true;
         
-        // MODIFICATION : Utiliser l'offset Z augmenté pour le mobile (10 + 14 = 24)
+        // MODIFICATION : Utiliser l'offset Z mis à jour (10 + 8.0 = 18.0)
         camera.position.set(0, 0, 10 + MOBILE_Z_OFFSET); 
         camera.lookAt(0, 0, 0);
 
@@ -405,7 +393,7 @@ function animate() {
         
         setPhase3Active(true, canvas);
         
-        // MODIFICATION : Utiliser l'offset Z augmenté pour le mobile (10 + 14 = 24)
+        // MODIFICATION : Utiliser l'offset Z mis à jour (10 + 8.0 = 18.0)
         camera.position.set(0, 0, 10 + MOBILE_Z_OFFSET);
         camera.lookAt(0, 0, 0);
         

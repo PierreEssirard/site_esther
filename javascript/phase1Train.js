@@ -8,7 +8,7 @@ export let hasExploded = false;
 let fastLapCount = 0; 
 let lapStarted = false;
 let particles = []; 
-export let haussmannBuilding = null; // Rendre exportable pour l'ajustement dans main.js
+export let haussmannBuilding = null; // Exporté pour référence (même s'il est null sur mobile)
 export let mouseNormalizedX = 0; 
 export let mouseNormalizedY = -1; 
 let hasBeenTouched = false;
@@ -132,8 +132,7 @@ function createSimpleSuspendedCube() {
     cube.userData.isRotating = true;
     sculpture.add(cube);
     
-    // MODIFICATION: Positionner le cube au centre (0, 0, 0). Sa position finale
-    // (Y vertical pour l'alignement) sera gérée dans main.js.
+    // Positionner le cube au centre (0, 0, 0). Sa position finale
     sculpture.position.set(-5, 0, 0); 
     sculpture.userData.isCube = true;
     sculpture.userData.fixedScale = 1.0; 
@@ -242,12 +241,18 @@ export function explodeTrain(phase1Group) {
         phase1Group.add(p); 
     } 
     
-    // Apparition du cube Haussmann après un délai
-    setTimeout(() => { 
-        haussmannBuilding = createHaussmannBuilding(); 
-        phase1Group.add(haussmannBuilding); 
-        // L'ajustement de la position Y sera fait dans main.js après l'explosion.
-    }, 1000); 
+    // MODIFICATION: AJOUT DE LA VÉRIFICATION MOBILE
+    // Le cube Haussmann n'apparaît plus sur téléphone.
+    if (!isMobile) {
+        // Apparition du cube Haussmann après un délai (seulement sur Desktop)
+        setTimeout(() => { 
+            haussmannBuilding = createHaussmannBuilding(); 
+            phase1Group.add(haussmannBuilding); 
+        }, 1000); 
+    } else {
+        // S'assurer qu'il est bien nul si on est sur mobile.
+        haussmannBuilding = null;
+    }
 }
 
 // ==========================================================
@@ -315,7 +320,7 @@ export function updatePhase1(phase1Group, globalParticlesGroup, fallingCubes) {
             } 
         }
 
-        // 2. Gestion du cube Haussmann (Taille constante assurée)
+        // 2. Gestion du cube Haussmann (Seulement sur Desktop)
         if (haussmannBuilding) {
             // Le scale est fixe à 1.0 car phase1Group.scale est fixe à 1.0 (voir utils.js)
             haussmannBuilding.scale.setScalar(1.0); 
@@ -327,7 +332,7 @@ export function updatePhase1(phase1Group, globalParticlesGroup, fallingCubes) {
                 cubeMesh.rotation.x += 0.003;
                 cubeMesh.rotation.z += 0.003;
             }
-            // La position Y est maintenant gérée dans main.js pour la responsivité
+            // La position Y est maintenant gérée dans main.js pour la responsivité (desktop)
         }
     }
 }

@@ -46,8 +46,8 @@ export function initPhase2(phase2Group) {
 
     const fontLoader = new THREE.FontLoader();
     fontLoader.load('https://threejs.org/examples/fonts/gentilis_bold.typeface.json', function (font) {
-        // MODIFICATION: Réduction de la taille du texte de 3.5 à 2.0
-        const textShape = font.generateShapes('Mes dessins', 2.0); 
+        // MODIFICATION: Réduction de la taille du texte de 2.0 à 1.5 pour l'effet "beaucoup trop grand" sur mobile.
+        const textShape = font.generateShapes('Mes dessins', 1.5); 
         const geometry = new THREE.ShapeGeometry(textShape);
         geometry.computeBoundingBox();
         const xMin = geometry.boundingBox.min.x;
