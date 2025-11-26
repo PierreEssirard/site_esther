@@ -21,16 +21,31 @@ export function setRendererToCanvasSize(renderer, camera) {
  */
 export function adjustCameraForScreen(camera, phase1Group) {
     const w = window.innerWidth;
+    
+    // Position Z par défaut pour desktop
+    let baseCameraZ = 7;
+    let phase1Scale = 1.0;
+    let cameraX = -1; // Position standard X (pour décentrer le tapis sur desktop)
+
     if (w <= 480) { 
-        camera.position.set(0, 0, 7); 
-        phase1Group.scale.set(1.1, 1.1, 1.1); 
-        phase1Group.position.set(0, 0, 0); 
+        // Sur mobile, on recule la caméra pour que la scène entière paraisse plus petite.
+        baseCameraZ = 9.5; 
+        
+        // On recentre la caméra en X sur mobile
+        cameraX = 0; 
+        
+        // On conserve le scale pour la phase 1 (zoom initial)
+        phase1Scale = 1.1; 
     } 
-    else { 
-        camera.position.set(-1, 0, 7); 
-        phase1Group.scale.set(1, 1, 1); 
-        phase1Group.position.set(0, 0, 0); 
-    }
+    
+    // Position de la caméra Phase 1
+    camera.position.set(cameraX, 0, baseCameraZ); 
+    
+    // Scale du groupe Phase 1
+    phase1Group.scale.set(phase1Scale, phase1Scale, phase1Scale); 
+    phase1Group.position.set(0, 0, 0); 
+    
+    camera.updateProjectionMatrix(); // Mise à jour de la matrice de projection
 }
 
 /**

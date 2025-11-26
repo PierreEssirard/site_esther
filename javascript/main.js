@@ -97,6 +97,9 @@ scene.add(light1);
 const light2 = new THREE.PointLight(0xffffff, 1.5, 10);
 scene.add(light2);
 
+// Détermine l'offset Z pour reculer la caméra dans les phases 2 et 3 sur mobile
+const MOBILE_Z_OFFSET = window.innerWidth <= 480 ? 1.5 : 0; 
+
 // ==========================================================
 // 2. GROUPES DE SCÈNE
 // ==========================================================
@@ -211,10 +214,16 @@ if (!isMobile) {
         if (hasExploded) return; 
     }); 
 } else { 
+    // CORRECTION SCROLL/TOUCH: Permettre le défilement vertical sur le canvas
+    canvas.style.touchAction = 'pan-y'; 
+    
     canvas.addEventListener('touchstart', (e) => { 
         if (hasExploded) return; 
         const touch = e.touches[0]; 
-        updateMousePosition(touch.clientX, touch.clientY, canvas, mouse); 
+        
+        // Correction de l'appel de fonction : elle prend l'objet event complet
+        updateMousePosition(touch, canvas, mouse); 
+        
         if (checkTrainIntersection(raycaster, camera, mouse)) setAcceleratingState(true); 
     }); 
     canvas.addEventListener('touchend', () => setAcceleratingState(false)); 
@@ -306,6 +315,7 @@ function animate() {
         phase1Group.visible = true;
         
         // Assure que la caméra est en position Phase 1 (position responsives de utils.js)
+        // Ceci ajuste la position Z de la caméra sur mobile.
         adjustCameraForScreen(camera, phase1Group);
         
         // CORRECTION MAJEURE: Lier la position Y du groupe au scroll pour le faire remonter de manière synchronisée.
@@ -352,8 +362,8 @@ function animate() {
     if (phase1to2Transition > 0 && scroll3dSection) { 
         phase2Group.visible = true;
         
-        // Position de la caméra pour la Phase 2
-        camera.position.set(0, 0, 10);
+        // MODIFICATION : Utiliser l'offset Z pour le mobile
+        camera.position.set(0, 0, 10 + MOBILE_Z_OFFSET); 
         camera.lookAt(0, 0, 0);
 
         const rect = scroll3dSection.getBoundingClientRect();
@@ -378,8 +388,8 @@ function animate() {
         
         setPhase3Active(true, canvas);
         
-        // Position de la caméra pour la Phase 3
-        camera.position.set(0, 0, 10);
+        // MODIFICATION : Utiliser l'offset Z pour le mobile
+        camera.position.set(0, 0, 10 + MOBILE_Z_OFFSET);
         camera.lookAt(0, 0, 0);
         
         const phase3Progress = Math.min(1, (phase2to3Transition - 0.2) / 0.8);
