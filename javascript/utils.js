@@ -29,7 +29,7 @@ export function adjustCameraForScreen(camera, phase1Group) {
 
     if (w <= 480) { 
         // MODIFICATION: Augmentation de la distance Z à 20.0 pour un effet de 'très très petit'
-        baseCameraZ = 40.0; 
+        baseCameraZ = 20.0; 
         
         // On recentre la caméra en X sur mobile
         cameraX = 0; 

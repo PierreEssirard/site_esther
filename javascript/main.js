@@ -97,16 +97,16 @@ scene.add(light1);
 const light2 = new THREE.PointLight(0xffffff, 1.5, 10);
 scene.add(light2);
 
-// MODIFICATION: Mise à jour de l'offset Z pour le recul de la caméra des phases 2 et 3
-// Base Phase 2/3 (desktop): 10. Base Phase 1 (mobile, via utils.js): 20.0.
-// On utilise 10 + 10 = 20 pour la cohérence.
-const MOBILE_Z_OFFSET = window.innerWidth <= 480 ? 10.0 : 0; 
+// MODIFICATION: Augmentation de l'offset Z pour amplifier la miniaturisation des phases 2 et 3.
+// Ceci suppose que utils.js met la base Phase 1 à Z=20.0. 
+// 10 (base desktop) + 14.0 = 24.0 (nouvelle position Z mobile).
+const MOBILE_Z_OFFSET = window.innerWidth <= 480 ? 14.0 : 0; 
 
-// AJOUT: Position verticale pour le cube Haussmann sur mobile après explosion
-// On décale le cube vers le haut (Y positif)
-const MOBILE_CUBE_Y_POS = isMobile ? 2.5 : 0; 
-// On décale le texte "Mes dessins" vers le bas (Y négatif) pour se placer sous le cube
-const MOBILE_TEXT_Y_POS = isMobile ? -3.0 : 0;
+// MODIFICATION: Augmentation des offsets Y pour séparer le cube du texte "Mes dessins"
+// Décalage du cube vers le haut (Y positif)
+const MOBILE_CUBE_Y_POS = isMobile ? 3.5 : 0; 
+// Décalage du texte "Mes dessins" vers le bas (Y négatif) pour se placer sous le cube
+const MOBILE_TEXT_Y_POS = isMobile ? -4.5 : 0;
 
 // ==========================================================
 // 2. GROUPES DE SCÈNE
@@ -379,7 +379,7 @@ function animate() {
     if (phase1to2Transition > 0 && scroll3dSection) { 
         phase2Group.visible = true;
         
-        // MODIFICATION : Utiliser l'offset Z augmenté pour le mobile (10 + 10 = 20)
+        // MODIFICATION : Utiliser l'offset Z augmenté pour le mobile (10 + 14 = 24)
         camera.position.set(0, 0, 10 + MOBILE_Z_OFFSET); 
         camera.lookAt(0, 0, 0);
 
@@ -405,7 +405,7 @@ function animate() {
         
         setPhase3Active(true, canvas);
         
-        // MODIFICATION : Utiliser l'offset Z augmenté pour le mobile (10 + 10 = 20)
+        // MODIFICATION : Utiliser l'offset Z augmenté pour le mobile (10 + 14 = 24)
         camera.position.set(0, 0, 10 + MOBILE_Z_OFFSET);
         camera.lookAt(0, 0, 0);
         
