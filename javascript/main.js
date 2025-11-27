@@ -13,16 +13,21 @@ import {
     setPhase3Active, updateMousePosition3D, checkHoveredImage,
     mouse3D, preloadCarouselTextures 
 } from './phase3Carousel.js';
-// NOUVEAU: Import du manager d'administration
+// NOUVEAU: Import du manager d'administration et des fonctions Firebase
 import { 
     initAdmin, getAdminStatus, setUpdateCallback, 
-    // NOUVEAU: Import des fonctions pour les couleurs
+    initializeCarouselListener, // NOUVEAU: Écouteur Firebase pour les images
     getPhaseColors, setUpdateColorCallback 
-} from './adminManager.js'; // Import de setUpdateCallback
+} from './adminManager.js'; 
 
 // ==========================================================
-// 0. ÉCRAN DE CHARGEMENT
+// 0. ÉCRAN DE CHARGEMENT & CACHE
 // ==========================================================
+
+// Cache local pour les données dynamiques
+let phaseColors = {}; // Rempli par getPhaseColors
+let carouselImageSources = []; // Rempli par initializeCarouselListener
+let isAppReady = false;
 
 // Créer l'overlay de chargement
 const loadingOverlay = document.createElement('div');
@@ -86,15 +91,6 @@ function updateProgress(percent) {
 const canvas = document.getElementById('canvas3d');
 const scene = new THREE.Scene();
 
-// NOUVEAU: Objet pour stocker les couleurs et fonction de mise à jour
-let phaseColors = getPhaseColors(); 
-scene.background = new THREE.Color(phaseColors.COLOR_PHASE1); // Couleur de départ
-
-// Anciennes constantes de couleur supprimées.
-// const COLOR_PHASE1 = new THREE.Color(0xc92e2e);
-// const COLOR_PHASE2 = new THREE.Color(0xc84508); 
-// const COLOR_PHASE3 = new THREE.Color(0xf57e43);
-
 const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
 renderer.outputColorSpace = THREE.SRGBColorSpace; 
@@ -134,23 +130,11 @@ let fallingCubes = [];
 // 3. PRÉCHARGEMENT ET INITIALISATION
 // ==========================================================
 
-let isAppReady = false;
-
-// NOUVEAU: Fonction pour mettre à jour la couleur de fond en temps réel
-function updateSceneColors() {
-    // Récupère les dernières couleurs du stockage local
-    phaseColors = getPhaseColors(); 
-    // Met à jour la couleur de fond de la scène avec la couleur de la phase 1
-    scene.background.set(phaseColors.COLOR_PHASE1);
-    console.log('Couleurs de phase mises à jour.');
-}
-
-
 // Fonction pour afficher un message d'alerte sans utiliser alert()
 function showUpdateMessage() {
     // Créer un message temporaire en haut de l'écran
     const message = document.createElement('div');
-    message.textContent = "Modification du Carrousel détectée. Rechargement de la page pour mettre à jour la scène 3D...";
+    message.textContent = "Modification des données détectée. Rechargement de la page pour mettre à jour la scène 3D...";
     message.style.cssText = `
         position: fixed;
         top: 0;
@@ -172,11 +156,24 @@ function showUpdateMessage() {
     }, 2000); // 2 secondes
 }
 
+// NOUVEAU: Fonction pour mettre à jour la couleur de fond en temps réel (ASYNCHRONE)
+function updateSceneColors() {
+    // Récupère les dernières couleurs de Firebase
+    getPhaseColors().then(latestColors => {
+        phaseColors = latestColors; // Met à jour l'objet global
+        scene.background.set(phaseColors.COLOR_PHASE1);
+        console.log('Couleurs de phase mises à jour en temps réel.');
+    }).catch(e => {
+        console.error('Erreur lors de la mise à jour des couleurs:', e);
+    });
+}
+
 
 async function initializeApp() {
     try {
         let completedTasks = 0;
-        const totalTasks = 3;
+        // Total tasks: 1 (Model), 2 (Cube), 3 (Colors), 4 (Carousel Textures)
+        const totalTasks = 4;
         
         // Fonction pour mettre à jour la progression
         const updateLoadingProgress = () => {
@@ -185,7 +182,7 @@ async function initializeApp() {
             updateProgress(percent);
         };
         
-        // Précharger TOUTES les ressources avec suivi de progression
+        // 1. Charger les ressources statiques
         const modelPromise = preloadModel().then(() => {
             updateLoadingProgress();
             console.log('✓ Modèle 3D chargé');
@@ -196,18 +193,54 @@ async function initializeApp() {
             console.log('✓ Textures du cube chargées');
         });
         
-        const carouselPromise = preloadCarouselTextures().then(() => {
+        // 2. Charger les données dynamiques initiales de Firebase
+        const colorPromise = getPhaseColors().then(colors => {
+            phaseColors = colors;
+            scene.background = new THREE.Color(phaseColors.COLOR_PHASE1);
             updateLoadingProgress();
-            console.log('✓ Textures du carrousel chargées');
+            console.log('✓ Couleurs de phase chargées.');
         });
         
-        await Promise.all([modelPromise, cubePromise, carouselPromise]);
+        // Attendre le chargement des données non images
+        await Promise.all([modelPromise, cubePromise, colorPromise]);
         
-        // Initialiser les phases
+        // 3. Initialiser l'écouteur de carrousel Firebase
+        // NOTE: L'écouteur remplit `carouselImageSources` et déclenche `showUpdateMessage`
+        // lors des changements après le chargement initial.
+        const carouselListenerPromise = new Promise(resolve => {
+            initializeCarouselListener((images) => {
+                carouselImageSources = images;
+                // Si l'application est déjà prête, ceci est un changement en temps réel, on recharge
+                if (isAppReady) {
+                    showUpdateMessage();
+                } else {
+                    // C'est le premier chargement, on résout la promesse
+                    resolve();
+                }
+            });
+        });
+        
+        // 4. Attendre la première liste d'images de Firebase
+        await carouselListenerPromise;
+        updateLoadingProgress();
+        console.log('✓ Liste des images du carrousel chargée de Firebase.');
+
+
+        // 5. Précharger les textures du carrousel avec les images récupérées
+        // Cette étape est bloquante et garantit que les images sont prêtes.
+        const carouselTexturePromise = preloadCarouselTextures(carouselImageSources).then(() => {
+            updateLoadingProgress(); // Une progression finale pour le préchargement des textures
+            console.log('✓ Textures du carrousel préchargées.');
+        });
+        
+        await carouselTexturePromise;
+        
+        // 6. Initialiser les phases avec les données
         initPhase1(phase1Group);
         initPhase2(phase2Group);
         phase2Group.position.y = MOBILE_TEXT_Y_POS;
-        initPhase3(phase3Group);
+        // Passe la liste d'images récupérée à la Phase 3
+        initPhase3(phase3Group, carouselImageSources); 
         
         // Configuration initiale
         setRendererToCanvasSize(renderer, camera); 
@@ -362,17 +395,7 @@ function animate() {
 
     // SYNCHRONISATION DU TEXTE - Monte dès le début
     if (heroContent) {
-        // Récupère la valeur de transformation CSS si elle existe déjà (par exemple, si une transition est en cours)
-        const style = window.getComputedStyle(heroContent);
-        const matrix = new DOMMatrixReadOnly(style.transform);
-        // Le texte se déplace par le scrollY lui-même (grâce à la propriété CSS de la section hero, 
-        // généralement gérée par un "sticky" ou un effet de parallax, mais ici, c'est une 
-        // transformation CSS appliquée dynamiquement par le script).
-        // On prend le scrollY comme facteur de translation pour le texte.
-        
-        // MODIFICATION: Nous allons utiliser le scrollY DIRECTEMENT pour le déplacement 
-        // du texte. Cela correspond à un déplacement 1:1, ce qui devrait synchroniser la 
-        // disparition du texte et le déplacement du cube.
+        // Le texte se déplace par le scrollY lui-même
         textTranslateY = scrollY;
         
         heroContent.style.transform = `translateY(-${textTranslateY}px)`;
@@ -414,16 +437,6 @@ function animate() {
         // Assure que la caméra est en position Phase 1
         adjustCameraForScreen(camera, phase1Group);
         
-        // SYNCHRONISATION: Le cube monte à la même vitesse que le texte (textTranslateY)
-        // Nous ajustons la position Y du groupe 3D en utilisant le scrollY normalisé.
-        // Puisque le texte est déplacé par scrollY, nous utilisons phase1to2Transition pour un mouvement doux.
-        // Un facteur de 20 (arbitraire mais ajusté) permet de déplacer le cube visiblement.
-        // Remplace `phase1Group.position.y = phase1to2Transition * scrollFactor3D;`
-        
-        // Le `scrollFactor3D` de 60 était en fait utilisé comme une hauteur maximale de déplacement.
-        // Pour synchroniser la montée, nous allons utiliser une valeur basée sur la hauteur de la fenêtre.
-        // Environ 6-10 unités Three.js suffisent pour faire sortir le cube de l'écran.
-        // J'utilise 8 pour une translation visible mais pas trop rapide.
         const scrollLiftFactor = 8; 
         
         phase1Group.position.x = phase1to2Transition * -10; 
@@ -505,8 +518,6 @@ function animate() {
         phase3Group.position.y = 0; 
         setPhase3Active(false, canvas);
     }
-    
-    // La synchronisation du texte est maintenant gérée au début de la fonction animate()
     
     renderer.render(scene, camera);
 } 

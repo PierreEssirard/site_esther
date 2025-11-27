@@ -1,14 +1,11 @@
 // phase3Carousel.js - VERSION OPTIMISÉE AVEC PRÉLOADER
 
-// NOUVEAU: Import pour récupérer les images admin
-import { getAdminImages } from './adminManager.js';
+// NOUVEAU: Suppression de l'import de getAdminImages - les images seront passées en paramètre.
 
 let imageCarousel = [];
 const carouselRadius = 5; 
-// MODIFICATION CRUCIALE: Le tableau est maintenant VIDE ou très réduit.
-// adminManager.js s'occupe de MIGRER ces noms de fichiers vers localStorage lors du premier lancement.
-// Après cette migration, phase3Carousel.js DOIT les récupérer via getAdminImages().
-export const imageFiles = []; 
+// Le tableau est maintenant VIDE, car les images viennent de Firebase
+export const imageFiles = ['P1.jpeg', 'P2.jpeg', 'P3.jpeg', 'P4.jpeg', 'P5.jpeg']; // Images de base à migrer
 const textureLoader = new THREE.TextureLoader();
 
 const raycaster3 = new THREE.Raycaster();
@@ -51,47 +48,50 @@ const isMobile = /Android|webOS|iPhone|iPad|IEMobile|Opera Mini/i.test(navigator
 
 /**
  * Précharge toutes les textures du carrousel (y compris celles de l'admin)
+ * MODIFIÉ: Reçoit la liste des images de `main.js`.
+ * @param {Array<string>} allImageSources - Liste des images (fichiers ou Base64) venant de Firebase.
  */
-export function preloadCarouselTextures() {
+export function preloadCarouselTextures(allImageSources) {
     const promises = [];
     
-    // 1. Récupérer TOUTES les images (Base + Admin) du Local Storage
-    const allImageSources = getAdminImages();
+    // Réinitialisation du cache de textures
+    preloadedTextures = {}; 
     
-    if (allImageSources.length === 0) {
-        console.warn("Aucune image de carrousel trouvée dans le Local Storage. Le carrousel ne sera pas affiché.");
+    if (!allImageSources || allImageSources.length === 0) {
+        console.warn("Aucune image de carrousel fournie. Le carrousel ne sera pas affiché.");
         texturesLoaded = true;
-        return Promise.resolve();
-    }
+        // On précharge quand même les textures du bandeau
+    } else {
+        // 2. Précharger les images du carrousel
+        allImageSources.forEach((source, index) => {
+            // La source est soit un nom de fichier (P1.jpeg) soit une chaîne Base64
+            const isBase64 = source.startsWith('data:image/');
+            // Clé d'accès unique basée sur l'index (car la source peut être très longue si Base64)
+            const sourceKey = isBase64 ? `admin_dynamic_${index}` : source; 
 
-    // 2. Précharger les images
-    allImageSources.forEach((source, index) => {
-        // La source est soit un nom de fichier (P1.jpeg) soit une chaîne Base64
-        const isBase64 = source.startsWith('data:image/');
-        const sourceKey = isBase64 ? `admin_dynamic_${index}` : source; // Clé d'accès unique
-
-        const loaderSource = isBase64 ? source : `image_projets/${source}`;
-        
-        const promise = new Promise((resolve, reject) => {
-            textureLoader.load(
-                loaderSource,
-                (texture) => {
-                    texture.colorSpace = THREE.SRGBColorSpace;
-                    texture.minFilter = THREE.LinearFilter;
-                    preloadedTextures[sourceKey] = texture;
-                    resolve();
-                },
-                undefined,
-                (error) => {
-                    console.error('Erreur préchargement texture carrousel:', sourceKey, error);
-                    // Remplacer la texture manquante par une couleur pour éviter le crash
-                    preloadedTextures[sourceKey] = new THREE.Texture();
-                    resolve(); 
-                }
-            );
+            const loaderSource = isBase64 ? source : `image_projets/${source}`;
+            
+            const promise = new Promise((resolve, reject) => {
+                textureLoader.load(
+                    loaderSource,
+                    (texture) => {
+                        texture.colorSpace = THREE.SRGBColorSpace;
+                        texture.minFilter = THREE.LinearFilter;
+                        preloadedTextures[sourceKey] = texture;
+                        resolve();
+                    },
+                    undefined,
+                    (error) => {
+                        console.error('Erreur préchargement texture carrousel:', sourceKey, error);
+                        // Remplacer la texture manquante par une texture vide
+                        preloadedTextures[sourceKey] = new THREE.Texture();
+                        resolve(); 
+                    }
+                );
+            });
+            promises.push(promise);
         });
-        promises.push(promise);
-    });
+    }
     
     // Précharger les images du bandeau (inchangé)
     imageBandFiles.forEach(filename => {
@@ -118,7 +118,7 @@ export function preloadCarouselTextures() {
     
     return Promise.all(promises).then(() => {
         texturesLoaded = true;
-        console.log('Toutes les textures Phase 3 sont chargées (y compris celles du Local Storage).');
+        console.log('Toutes les textures Phase 3 sont chargées (y compris celles de Firebase).');
     });
 }
 
@@ -166,42 +166,52 @@ function createRepeatingImageBand(group, yPosition, scaleX) {
 
 /**
  * Initialise le carrousel et le bandeau d'images avec textures préchargées
+ * MODIFIÉ: Reçoit la liste des images de `main.js`.
+ * @param {THREE.Group} phase3Group
+ * @param {Array<string>} allImageSources - Liste des images (fichiers ou Base64) venant de Firebase.
  */
-export function initPhase3(phase3Group) {
-    // NOUVEAU: Utilise TOUTES les sources du Local Storage
-    const allImageSources = getAdminImages();
+export function initPhase3(phase3Group, allImageSources) {
+    // S'assurer que le carrousel est vide avant de le remplir (important si on réinitialisait)
+    imageCarousel.forEach(mesh => phase3Group.remove(mesh));
+    imageCarousel = []; 
     
     // Vérification de sécurité: si aucune image n'est présente, on arrête l'initialisation du carrousel.
-    if (allImageSources.length === 0) {
+    if (!allImageSources || allImageSources.length === 0) {
         console.log("initPhase3 arrêté car allImageSources est vide.");
         return;
     }
     
     // Lumières Phase 3
-    const spotLight3 = new THREE.SpotLight(0xffffff, 4.0); 
-    spotLight3.position.set(0, 8, 5);
-    spotLight3.angle = Math.PI / 4;
-    spotLight3.penumbra = 0.6;
-    spotLight3.castShadow = true;
-    spotLight3.shadow.mapSize.width = 1024;
-    spotLight3.shadow.mapSize.height = 1024;
-    phase3Group.add(spotLight3);
+    // Note: Les lumières ne sont pas recréées, elles sont juste ajoutées au groupe la première fois.
+    // Pour simplifier, nous allons supposer que les lumières sont déjà là ou gérées ailleurs.
+    if (phase3Group.children.length === 0) {
+        const spotLight3 = new THREE.SpotLight(0xffffff, 4.0); 
+        spotLight3.position.set(0, 8, 5);
+        spotLight3.angle = Math.PI / 4;
+        spotLight3.penumbra = 0.6;
+        spotLight3.castShadow = true;
+        spotLight3.shadow.mapSize.width = 1024;
+        spotLight3.shadow.mapSize.height = 1024;
+        phase3Group.add(spotLight3);
 
-    const ambientLight3 = new THREE.AmbientLight(0xffffff, 1.2); 
-    phase3Group.add(ambientLight3);
+        const ambientLight3 = new THREE.AmbientLight(0xffffff, 1.2); 
+        phase3Group.add(ambientLight3);
 
-    const fillLight3 = new THREE.DirectionalLight(0xffffff, 0.8); 
-    fillLight3.position.set(-5, 3, -3);
-    phase3Group.add(fillLight3);
+        const fillLight3 = new THREE.DirectionalLight(0xffffff, 0.8); 
+        fillLight3.position.set(-5, 3, -3);
+        phase3Group.add(fillLight3);
+        
+        // Bandeau d'images (seulement créé la première fois)
+        const imageBandBottom = new THREE.Group();
+        phase3Group.add(imageBandBottom);
+        bandBottomElements = createRepeatingImageBand(imageBandBottom, -bandVerticalOffset, -1); 
+    }
 
     // Carrousel d'images
     const photoWidth = 2.2;
     const photoHeight = 3;
     
     
-    // S'assurer que le carrousel est vide avant de le remplir (important si on réinitialisait)
-    imageCarousel = []; 
-
     allImageSources.forEach((source, index) => { 
         const isBase64 = source.startsWith('data:image/');
         const sourceKey = isBase64 ? `admin_dynamic_${index}` : source; // Retrouver la clé de préchargement
@@ -221,7 +231,7 @@ export function initPhase3(phase3Group) {
             photoMat.map = preloadedTextures[sourceKey];
             photoMat.needsUpdate = true;
         } else {
-            // Utiliser une couleur par défaut si le chargement a échoué (y compris les fallbacks ci-dessus)
+            // Utiliser une couleur par défaut si le chargement a échoué 
             console.warn(`Texture réelle non disponible pour ${sourceKey}. Utilisation du fallback couleur.`);
             photoMat.color.set(0xaaaaaa);
         }
@@ -242,7 +252,7 @@ export function initPhase3(phase3Group) {
             homePosition: new THREE.Vector3(x, 0, z),
             targetPosition: new THREE.Vector3(x, 0, z),
             currentPosition: new THREE.Vector3(x, 0, z),
-            targetScale: 1, 
+            targetScale: 0, // Commence à 0 pour l'apparition en transition
             currentScale: 0, 
             isHovered: false,
             rotationLocked: false,
@@ -254,11 +264,6 @@ export function initPhase3(phase3Group) {
         phase3Group.add(imagePlaneGroup);
         imageCarousel.push(imagePlaneGroup);
     });
-
-    // Bandeau d'images
-    const imageBandBottom = new THREE.Group();
-    phase3Group.add(imageBandBottom);
-    bandBottomElements = createRepeatingImageBand(imageBandBottom, -bandVerticalOffset, -1); 
 }
 
 // ==========================================================
@@ -310,20 +315,23 @@ export function checkHoveredImage(camera, canvas) {
 // ==========================================================
 
 export function updateCarouselPhase3(transitionProgress, camera) {
+    // Le nombre total d'images est maintenant basé sur le tableau interne.
+    const totalImages = imageCarousel.length; 
+
+    if (totalImages === 0) return;
+    
     if (!hoveredImage) { 
         carouselRotation += 0.004; 
     }
     
     const identityQuaternion = new THREE.Quaternion();
     
-    // Le nombre total d'images doit être récupéré ici aussi
-    const allImageSources = getAdminImages();
-    
     imageCarousel.forEach((imagePlaneGroup) => {
         const userData = imagePlaneGroup.userData;
         const photoMaterial = imagePlaneGroup.children[0].material; 
 
         if (transitionProgress < 1) {
+            // Fait apparaître les images en même temps que la transition
             userData.targetScale = transitionProgress;
         } else {
             userData.targetScale = 1;
@@ -333,9 +341,7 @@ export function updateCarouselPhase3(transitionProgress, camera) {
             
             // Paramètres de zoom ajustés pour Desktop et Mobile
             const D_DESKTOP = 6.0; 
-            // MODIFICATION: Facteur de padding réduit de 0.90 à 0.75 pour Desktop (moins de zoom)
             const PADDING_FACTOR_DESKTOP = 0.75; 
-            // MODIFICATION: Facteur de padding réduit de 0.95 à 0.85 pour Mobile (moins de zoom)
             const PADDING_FACTOR_MOBILE = 0.85; 
 
             let D_ZOOM = D_DESKTOP;
@@ -356,7 +362,6 @@ export function updateCarouselPhase3(transitionProgress, camera) {
             const H_base = userData.originalPhotoHeight; 
             
             const scaleFactorW = (W_visible * paddingFactor) / W_base;
-            // CORRECTION CRUCIALE: Utiliser H_visible pour calculer scaleFactorH
             const scaleFactorH = (H_visible * paddingFactor) / H_base; 
 
             userData.targetScale = Math.min(scaleFactorW, scaleFactorH);
@@ -374,8 +379,7 @@ export function updateCarouselPhase3(transitionProgress, camera) {
                 
                 imagePlaneGroup.rotation.y = (1 - t) * Math.PI * 4; 
                 
-                // Le nombre total d'images est maintenant basé sur allImageSources.length
-                const totalImages = allImageSources.length;
+                // Le nombre total d'images est maintenant basé sur imageCarousel.length
                 const baseAngle = (userData.index / totalImages) * Math.PI * 2;
                 
                 const x_final = Math.cos(baseAngle) * carouselRadius;
@@ -391,7 +395,6 @@ export function updateCarouselPhase3(transitionProgress, camera) {
                 
             } else {
                 // Si le nombre d'images a changé (suppression), on recalcule l'angle de base
-                const totalImages = allImageSources.length;
                 const baseAngle = (userData.index / totalImages) * Math.PI * 2;
 
                 if (!userData.rotationLocked) {

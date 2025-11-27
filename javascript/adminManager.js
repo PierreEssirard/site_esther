@@ -1,88 +1,121 @@
-// javascript/adminManager.js
+// javascript/adminManager.js - VERSION CORRIGÉE AVEC TIMEOUTS
 
-// NOUVEAU: Import de la liste des fichiers d'images de base depuis phase3Carousel
 import { imageFiles } from './phase3Carousel.js'; 
 
-const ADMIN_CODE = '0000'; // Code secret de l'administrateur
-let isAdminLoggedIn = false; // État de connexion
+const ADMIN_CODE = '0000';
+let isAdminLoggedIn = false;
 
-// NOUVEAU: Constantes de couleur par défaut et clé de stockage
+const db = window.db; 
+let cachedAdminImages = [];
+
 const DEFAULT_COLORS = {
-    COLOR_PHASE1: '#c92e2e', // Rouge
-    COLOR_PHASE2: '#c84508', // Orange
-    COLOR_PHASE3: '#f57e43', // Pêche
+    COLOR_PHASE1: '#c92e2e',
+    COLOR_PHASE2: '#c84508',
+    COLOR_PHASE3: '#f57e43',
 };
-const COLOR_STORAGE_KEY = 'phase_background_colors';
 
-// NOUVEAU: Clé pour vérifier si les images de base ont déjà été copiées/initialisées dans le localStorage.
-const BASE_INITIALIZED_KEY = 'carousel_base_initialized';
+const DB_CAROUSEL_KEY = 'carouselImages';
+const DB_COLOR_KEY = 'phaseColors';
+const DB_INITIALIZED_KEY = 'baseInitialized';
 
-// NOUVEAU: Callback pour le rechargement de l'application (pour le carrousel)
+// NOUVEAU : Timeout pour éviter le blocage
+const FIREBASE_TIMEOUT = 5000; // 5 secondes
+
 let updateCallback = () => {};
-// NOUVEAU: Callback pour la mise à jour des couleurs (pour main.js)
 let updateColorCallback = () => {}; 
 
 // ==========================================================
-// LOGIQUE DE GESTION DU CARROUSEL (Local Storage)
+// UTILITAIRE : Promesse avec timeout
 // ==========================================================
 
-const STORAGE_KEY = 'carousel_admin_images';
-
-/**
- * Charge la liste des images administrateur depuis le Local Storage.
- * @returns {Array<string>} Tableau de chaînes de caractères Base64 (ou noms de fichiers pour les images de base).
- */
-function loadAdminImages() {
-    try {
-        const json = localStorage.getItem(STORAGE_KEY);
-        // Les images peuvent être soit des Base64, soit des chemins de fichiers comme 'P1.jpeg'
-        return json ? JSON.parse(json) : [];
-    } catch (e) {
-        console.error("Erreur de lecture du Local Storage:", e);
-        return [];
-    }
+function promiseWithTimeout(promise, timeoutMs, fallbackValue) {
+    return Promise.race([
+        promise,
+        new Promise((resolve) => setTimeout(() => {
+            console.warn(`⏱️ Timeout après ${timeoutMs}ms, utilisation du fallback`);
+            resolve(fallbackValue);
+        }, timeoutMs))
+    ]);
 }
 
-/**
- * Sauvegarde la liste des images administrateur dans le Local Storage.
- * @param {Array<string>} images - Tableau de chaînes de caractères Base64 ou chemins de fichiers.
- */
+// ==========================================================
+// GESTION CARROUSEL AVEC TIMEOUTS
+// ==========================================================
+
 function saveAdminImages(images) {
-    try {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(images));
-    } catch (e) {
-        console.error("Erreur d'écriture dans le Local Storage:", e);
+    if (!db) {
+        console.warn('Firebase non disponible, impossible de sauvegarder');
+        return;
     }
-}
-
-/**
- * NOUVEAU: Initialise le stockage local du carrousel en y incluant
- * les images de base (P1.jpeg, etc.) si ce n'est pas déjà fait.
- */
-function initializeImageStorage() {
-    const isInitialized = localStorage.getItem(BASE_INITIALIZED_KEY);
     
-    if (isInitialized !== 'true') {
-        const existingImages = loadAdminImages();
+    const dataToSave = images.reduce((acc, image, index) => {
+        acc[`item_${index}`] = image; 
+        return acc;
+    }, {});
+    
+    db.ref(DB_CAROUSEL_KEY).set(dataToSave)
+        .then(() => console.log("[Firebase] Images sauvegardées"))
+        .catch(e => console.error("[Firebase] Erreur sauvegarde:", e));
+}
+
+async function loadAdminImagesOnce() {
+    if (!db) {
+        console.warn('Firebase non disponible, retour des images par défaut');
+        return imageFiles; // Retour des images de base
+    }
+    
+    try {
+        const snapshot = await promiseWithTimeout(
+            db.ref(DB_CAROUSEL_KEY).once('value'),
+            FIREBASE_TIMEOUT,
+            null
+        );
         
-        // On fusionne les images de base (fichiers) avec les images admin existantes
-        const combinedImages = [...imageFiles, ...existingImages];
+        if (!snapshot) {
+            console.warn('Timeout Firebase, utilisation des images locales');
+            return imageFiles;
+        }
         
-        saveAdminImages(combinedImages);
-        localStorage.setItem(BASE_INITIALIZED_KEY, 'true');
-        
-        console.log('Images de base migrées vers le stockage local pour permettre la suppression/modification.');
-        
-        // Notifier le rechargement pour que phase3Carousel.js ait la liste complète
-        updateCallback();
+        const data = snapshot.val();
+        return data ? Object.values(data) : imageFiles;
+    } catch (e) {
+        console.error("Erreur lecture Firebase:", e);
+        return imageFiles; // Fallback sur images locales
     }
 }
 
-/**
- * Initialise l'interface de gestion du carrousel.
- */
+async function initializeImageStorage() {
+    if (!db) {
+        console.warn('Firebase non disponible, migration ignorée');
+        return;
+    }
+    
+    try {
+        const initializedSnapshot = await promiseWithTimeout(
+            db.ref(DB_INITIALIZED_KEY).once('value'),
+            FIREBASE_TIMEOUT,
+            { val: () => 'true' }
+        );
+        
+        const isInitialized = initializedSnapshot.val() === 'true';
+        
+        if (!isInitialized) {
+            console.log('Migration des images de base...');
+            
+            const existingImages = await loadAdminImagesOnce();
+            const combinedImages = [...imageFiles, ...existingImages];
+            
+            saveAdminImages(combinedImages);
+            db.ref(DB_INITIALIZED_KEY).set('true');
+            
+            console.log('✅ Images migrées');
+        }
+    } catch (error) {
+        console.error('Erreur migration:', error);
+    }
+}
+
 function initCarouselManager() {
-    // Appel de la nouvelle fonction d'initialisation au démarrage du gestionnaire
     initializeImageStorage(); 
     
     const carouselManagerDiv = document.getElementById('carouselManager');
@@ -90,70 +123,58 @@ function initCarouselManager() {
     const fileInput = document.getElementById('imageFileInput');
 
     if (!carouselManagerDiv || !imageList || !fileInput) {
-        console.warn('Éléments de gestion du carrousel non trouvés. Assurez-vous que les IDs sont présents dans le HTML.');
+        console.warn('Éléments carrousel non trouvés');
         return;
     }
 
-    // Fonction de suppression d'image (MAJ: fonctionne sur tous les éléments du tableau)
     function deleteImage(index) {
-        const images = loadAdminImages();
+        const images = [...cachedAdminImages];
         
         if (index < 0 || index >= images.length) {
-            console.error("Index d'image invalide pour la suppression.");
+            console.error("Index invalide");
             return;
         }
         
         images.splice(index, 1);
         saveAdminImages(images);
-        renderImageList();
-        
-        // APPEL NOUVEAU: Notifie l'application principale que le carrousel doit être mis à jour
-        console.log('Image supprimée. Notification de rechargement en cours.');
-        updateCallback(); 
     }
 
-    // Fonction de rendu de la liste d'images (MAJ: traite tous les éléments comme étant dans le même tableau)
     function renderImageList() {
         imageList.innerHTML = '';
-        const allImages = loadAdminImages(); // MAJ: Charger TOUTES les images (Base + Admin)
+        const allImages = cachedAdminImages;
         
-        // 1. Gérer l'état vide total
         if (allImages.length === 0) {
-            imageList.innerHTML = '<li style="color: #555; font-style: italic; padding: 10px 0;">Aucune image dans le carrousel. Ajoutez-en une !</li>';
+            imageList.innerHTML = '<li style="color: #555; font-style: italic; padding: 10px 0;">Aucune image. Ajoutez-en une !</li>';
             return;
         }
 
-        // Ajout d'un titre de section unique (tout est dans le même tableau)
         const title = document.createElement('h4');
-        title.textContent = `Liste des Images du Carrousel (${allImages.length} au total)`;
+        title.textContent = `Images du Carrousel (${allImages.length})`;
         title.style.marginTop = '15px';
         title.style.marginBottom = '10px';
         title.style.color = 'var(--color-primary)';
-        title.style.fontSize = '1em';
         imageList.appendChild(title);
         
-        // 2. Affichage des images
         allImages.forEach((imgSource, index) => {
-            const isBase64 = imgSource.startsWith('data:image/'); // Vérifie si c'est une image Base64 ou un nom de fichier
+            const isBase64 = imgSource.startsWith('data:image/');
             
             const li = document.createElement('li');
             li.style.display = 'flex';
             li.style.alignItems = 'center';
             li.style.marginBottom = '5px';
             li.style.padding = '5px';
-            li.style.borderBottom = '1px dashed #eee'; 
+            li.style.borderBottom = '1px dashed #eee';
 
-            // Affichage de l'aperçu ou d'une icône pour les fichiers
             if (isBase64) {
                 const img = document.createElement('img');
                 img.src = imgSource;
-                img.alt = `Image Admin ${index + 1}`;
-                img.style.width = '50px'; 
-                img.style.height = '35px'; 
+                img.alt = `Image ${index + 1}`;
+                img.style.width = '50px';
+                img.style.height = '35px';
                 img.style.marginRight = '15px';
                 img.style.objectFit = 'cover';
                 img.style.borderRadius = '2px';
-                img.style.border = '1px solid #ddd'; 
+                img.style.border = '1px solid #ddd';
                 li.appendChild(img);
             } else {
                 const icon = document.createElement('i');
@@ -167,85 +188,65 @@ function initCarouselManager() {
             }
 
             const label = document.createElement('span');
-            label.textContent = isBase64 ? `Admin ${index + 1}` : imgSource; // Affiche le nom de fichier pour les images de base
+            label.textContent = isBase64 ? `Admin ${index + 1}` : imgSource;
             label.style.fontSize = '0.9em';
             label.style.color = '#333';
             li.appendChild(label);
 
             const deleteBtn = document.createElement('button');
-            deleteBtn.innerHTML = '<i class="fas fa-trash-alt"></i>'; 
-            deleteBtn.title = 'Supprimer l\'image';
+            deleteBtn.innerHTML = '<i class="fas fa-trash-alt"></i>';
+            deleteBtn.title = 'Supprimer';
             deleteBtn.style.marginLeft = 'auto';
             deleteBtn.style.background = 'none';
             deleteBtn.style.color = '#d9534f';
             deleteBtn.style.border = 'none';
             deleteBtn.style.padding = '5px';
-            deleteBtn.style.borderRadius = '3px';
             deleteBtn.style.cursor = 'pointer';
-            deleteBtn.style.transition = 'color 0.2s';
             deleteBtn.style.fontSize = '1.1em';
-            deleteBtn.onmouseover = () => deleteBtn.style.color = '#c92e2e';
-            deleteBtn.onmouseout = () => deleteBtn.style.color = '#d9534f';
 
             deleteBtn.onclick = (e) => {
                 e.preventDefault();
-                // Utilise l'index de allImages pour supprimer l'élément, qu'il soit Base ou Admin
-                deleteImage(index); 
+                deleteImage(index);
             };
             li.appendChild(deleteBtn);
             imageList.appendChild(li);
         });
     }
-
-    // Fonction d'ajout d'image
+    
     fileInput.onchange = (e) => {
         const file = e.target.files[0];
         if (file) {
             const reader = new FileReader();
             reader.onload = (e) => {
-                const newImage = e.target.result; // Base64 string
-                const images = loadAdminImages();
+                const newImage = e.target.result;
+                const images = [...cachedAdminImages];
                 
                 if (images.length >= 15) { 
-                    console.warn('Limite maximale de 15 images administrateur atteinte. Veuillez en supprimer d\'abord.');
+                    console.warn('Limite de 15 images atteinte');
                     return;
                 }
 
                 images.push(newImage);
                 saveAdminImages(images);
-                renderImageList();
                 
-                console.log('Image ajoutée. Notification de rechargement en cours.');
-                updateCallback(); 
-
-                fileInput.value = ''; // Réinitialiser le champ
+                fileInput.value = '';
             };
             reader.readAsDataURL(file);
         }
     };
     
-    // Observer pour rafraîchir la liste lorsque le panneau admin est visible
-    const adminPanel = document.getElementById('adminPanel');
-    if (adminPanel) {
-        const observer = new MutationObserver((mutationsList, observer) => {
-            const isPanelVisible = adminPanel.style.display === 'block';
-            const carouselTab = document.querySelector('.tab-button[data-tab="carousel-manager"]');
-            const isCarouselActive = carouselTab && carouselTab.classList.contains('active');
-            
-            if (isPanelVisible && isCarouselActive) {
-                renderImageList();
-            }
-        });
-        observer.observe(adminPanel, { attributes: true, attributeFilter: ['style'] });
+    window.renderAdminImageList = renderImageList;
 
-        const tabContainer = document.querySelector('.admin-tabs');
-        if (tabContainer) {
-             tabContainer.addEventListener('click', (e) => {
-                if (e.target.getAttribute('data-tab') === 'carousel-manager' && isAdminLoggedIn) {
-                    setTimeout(renderImageList, 100); 
-                }
-             });
-        }
+    const adminPanel = document.getElementById('adminPanel');
+    const tabContainer = document.querySelector('.admin-tabs');
+    
+    if (adminPanel && tabContainer) {
+         tabContainer.addEventListener('click', (e) => {
+            const target = e.target.closest('.tab-button');
+            if (target && target.getAttribute('data-tab') === 'carousel-manager' && isAdminLoggedIn) {
+                setTimeout(renderImageList, 100);
+            }
+         });
     }
 
     if (isAdminLoggedIn) {
@@ -253,149 +254,159 @@ function initCarouselManager() {
     }
 }
 
-
 // ==========================================================
-// LOGIQUE DE GESTION DES COULEURS DE PHASE (NOUVEAU)
+// GESTION COULEURS AVEC TIMEOUTS
 // ==========================================================
 
-/**
- * Charge les couleurs de fond depuis le Local Storage ou utilise les valeurs par défaut.
- * @returns {object} Un objet avec les clés COLOR_PHASE1, COLOR_PHASE2, COLOR_PHASE3.
- */
-export function getPhaseColors() {
+export async function getPhaseColors() {
+    if (!db) {
+        console.warn('Firebase non disponible, couleurs par défaut');
+        return DEFAULT_COLORS;
+    }
+    
     try {
-        const json = localStorage.getItem(COLOR_STORAGE_KEY);
-        // Fusionne les couleurs stockées avec les couleurs par défaut pour éviter les erreurs
-        return json ? { ...DEFAULT_COLORS, ...JSON.parse(json) } : DEFAULT_COLORS;
+        const snapshot = await promiseWithTimeout(
+            db.ref(DB_COLOR_KEY).once('value'),
+            FIREBASE_TIMEOUT,
+            { val: () => null }
+        );
+        
+        const storedColors = snapshot ? snapshot.val() : null;
+        return storedColors ? { ...DEFAULT_COLORS, ...storedColors } : DEFAULT_COLORS;
     } catch (e) {
-        console.error("Erreur de lecture des couleurs du Local Storage:", e);
+        console.error("Erreur lecture couleurs:", e);
         return DEFAULT_COLORS;
     }
 }
 
-/**
- * Sauvegarde les couleurs de fond dans le Local Storage.
- * @param {object} colors - L'objet de couleurs à sauvegarder.
- */
 function savePhaseColors(colors) {
-    try {
-        localStorage.setItem(COLOR_STORAGE_KEY, JSON.stringify(colors));
-        
-        // Notifie l'application principale que les couleurs ont changé
-        updateColorCallback(); 
-        
-    } catch (e) {
-        console.error("Erreur d'écriture des couleurs dans le Local Storage:", e);
+    if (!db) {
+        console.warn('Firebase non disponible, sauvegarde impossible');
+        return;
     }
+    
+    db.ref(DB_COLOR_KEY).set(colors)
+        .then(() => {
+            console.log("[Firebase] Couleurs sauvegardées");
+            updateColorCallback();
+        })
+        .catch(e => console.error("[Firebase] Erreur couleurs:", e));
 }
 
-/**
- * Initialise l'interface de gestion des couleurs.
- */
 function initColorManager() {
     const colorManagerDiv = document.getElementById('colorManager');
-    if (!colorManagerDiv) {
-        // Cette fonction sera appelée à chaque ouverture du panneau
-        // Nous allons générer le contenu HTML ici
-        return; 
-    }
+    if (!colorManagerDiv) return;
     
-    // Récupérer les couleurs actuelles pour remplir les inputs
-    const currentColors = getPhaseColors();
-    
-    colorManagerDiv.innerHTML = `
-        <div style="margin-bottom: 15px;">
-            <label for="colorPhase1" style="display: block; margin-bottom: 5px; font-weight: bold; color: #333;">Couleur de Fond - Phase 1</label>
-            <input type="color" id="colorPhase1" value="${currentColors.COLOR_PHASE1}" style="width: 100%; height: 40px; border: 1px solid #ccc; border-radius: 4px;">
-        </div>
-        <div style="margin-bottom: 15px;">
-            <label for="colorPhase2" style="display: block; margin-bottom: 5px; font-weight: bold; color: #333;">Couleur de Fond - Phase 2</label>
-            <input type="color" id="colorPhase2" value="${currentColors.COLOR_PHASE2}" style="width: 100%; height: 40px; border: 1px solid #ccc; border-radius: 4px;">
-        </div>
-        <div style="margin-bottom: 15px;">
-            <label for="colorPhase3" style="display: block; margin-bottom: 5px; font-weight: bold; color: #333;">Couleur de Fond - Phase 3</label>
-            <input type="color" id="colorPhase3" value="${currentColors.COLOR_PHASE3}" style="width: 100%; height: 40px; border: 1px solid #ccc; border-radius: 4px;">
-        </div>
-        <button id="saveColorsBtn" style="background: var(--color-primary, #c92e2e); color: white; padding: 10px 15px; border: none; border-radius: 4px; cursor: pointer; transition: background 0.3s;">
-            Sauvegarder et Appliquer
-        </button>
-        <button id="resetColorsBtn" style="background: #999; color: white; padding: 10px 15px; border: none; border-radius: 4px; cursor: pointer; margin-left: 10px; transition: background 0.3s;">
-            Réinitialiser les Couleurs
-        </button>
-    `;
-    
-    const saveBtn = document.getElementById('saveColorsBtn');
-    const resetBtn = document.getElementById('resetColorsBtn');
-    
-    saveBtn.onclick = () => {
-        const newColors = {
-            COLOR_PHASE1: document.getElementById('colorPhase1').value,
-            COLOR_PHASE2: document.getElementById('colorPhase2').value,
-            COLOR_PHASE3: document.getElementById('colorPhase3').value,
+    getPhaseColors().then(currentColors => { 
+        colorManagerDiv.innerHTML = `
+            <div style="margin-bottom: 15px;">
+                <label for="colorPhase1" style="display: block; margin-bottom: 5px; font-weight: bold;">Phase 1</label>
+                <input type="color" id="colorPhase1" value="${currentColors.COLOR_PHASE1}" style="width: 100%; height: 40px; border: 1px solid #ccc; border-radius: 4px;">
+            </div>
+            <div style="margin-bottom: 15px;">
+                <label for="colorPhase2" style="display: block; margin-bottom: 5px; font-weight: bold;">Phase 2</label>
+                <input type="color" id="colorPhase2" value="${currentColors.COLOR_PHASE2}" style="width: 100%; height: 40px; border: 1px solid #ccc; border-radius: 4px;">
+            </div>
+            <div style="margin-bottom: 15px;">
+                <label for="colorPhase3" style="display: block; margin-bottom: 5px; font-weight: bold;">Phase 3</label>
+                <input type="color" id="colorPhase3" value="${currentColors.COLOR_PHASE3}" style="width: 100%; height: 40px; border: 1px solid #ccc; border-radius: 4px;">
+            </div>
+            <button id="saveColorsBtn" style="background: var(--color-primary); color: white; padding: 10px 15px; border: none; border-radius: 4px; cursor: pointer;">
+                Sauvegarder
+            </button>
+            <button id="resetColorsBtn" style="background: #999; color: white; padding: 10px 15px; border: none; border-radius: 4px; cursor: pointer; margin-left: 10px;">
+                Réinitialiser
+            </button>
+        `;
+        
+        const saveBtn = document.getElementById('saveColorsBtn');
+        const resetBtn = document.getElementById('resetColorsBtn');
+        
+        saveBtn.onclick = () => {
+            const newColors = {
+                COLOR_PHASE1: document.getElementById('colorPhase1').value,
+                COLOR_PHASE2: document.getElementById('colorPhase2').value,
+                COLOR_PHASE3: document.getElementById('colorPhase3').value,
+            };
+            savePhaseColors(newColors);
         };
-        savePhaseColors(newColors);
-        // Note: L'updateColorCallback appelle main.js pour mettre à jour la scène.
-        // Utiliser une alerte personnalisée si ce code était dans le HTML
-        console.log('Couleurs sauvegardées et appliquées en temps réel !');
-    };
-    
-    resetBtn.onclick = () => {
-        savePhaseColors(DEFAULT_COLORS);
-        // Met à jour les inputs après la réinitialisation
-        document.getElementById('colorPhase1').value = DEFAULT_COLORS.COLOR_PHASE1;
-        document.getElementById('colorPhase2').value = DEFAULT_COLORS.COLOR_PHASE2;
-        document.getElementById('colorPhase3').value = DEFAULT_COLORS.COLOR_PHASE3;
-        console.log('Couleurs réinitialisées et appliquées !');
-    };
+        
+        resetBtn.onclick = () => {
+            savePhaseColors(DEFAULT_COLORS);
+            document.getElementById('colorPhase1').value = DEFAULT_COLORS.COLOR_PHASE1;
+            document.getElementById('colorPhase2').value = DEFAULT_COLORS.COLOR_PHASE2;
+            document.getElementById('colorPhase3').value = DEFAULT_COLORS.COLOR_PHASE3;
+        };
+    });
 }
 
+// ==========================================================
+// LISTENER FIREBASE AVEC TIMEOUT
+// ==========================================================
 
-/**
- * Définit la fonction à appeler lorsqu'un changement critique nécessite un rechargement (Carrousel).
- * @param {function} callback 
- */
+export function initializeCarouselListener(callback) {
+    if (!db) {
+        console.warn('Firebase non disponible, utilisation des images locales');
+        callback(imageFiles);
+        return;
+    }
+    
+    // Timeout de sécurité : si Firebase ne répond pas en 5s, on utilise les images locales
+    let hasReceivedData = false;
+    
+    setTimeout(() => {
+        if (!hasReceivedData) {
+            console.warn('⏱️ Timeout Firebase listener, chargement des images locales');
+            cachedAdminImages = imageFiles;
+            callback(imageFiles);
+        }
+    }, FIREBASE_TIMEOUT);
+    
+    db.ref(DB_CAROUSEL_KEY).on('value', (snapshot) => {
+        hasReceivedData = true;
+        const data = snapshot.val();
+        const images = data ? Object.values(data) : imageFiles;
+        console.log(`[Firebase] ${images.length} images récupérées`);
+        cachedAdminImages = images;
+        callback(images);
+        
+        if (window.renderAdminImageList && isAdminLoggedIn) {
+             window.renderAdminImageList();
+        }
+    }, (error) => {
+        console.error("Erreur Firebase:", error);
+        cachedAdminImages = imageFiles;
+        callback(imageFiles);
+    });
+}
+
+// ==========================================================
+// EXPORTS
+// ==========================================================
+
 export function setUpdateCallback(callback) {
     if (typeof callback === 'function') {
         updateCallback = callback;
     }
 }
 
-/**
- * Définit la fonction à appeler lorsqu'un changement de couleur nécessite une mise à jour de la scène (Couleurs).
- * @param {function} callback 
- */
 export function setUpdateColorCallback(callback) {
     if (typeof callback === 'function') {
         updateColorCallback = callback;
     }
 }
 
-/**
- * Renvoie l'état de connexion de l'administrateur.
- * @returns {boolean}
- */
 export function getAdminStatus() {
     return isAdminLoggedIn;
 }
 
-/**
- * Renvoie toutes les images d'administrateur stockées (Base64).
- * @returns {Array<string>} Tableau de chaînes de caractères Base64.
- */
 export function getAdminImages() {
-    return loadAdminImages();
+    return cachedAdminImages;
 }
 
-
-/**
- * Initialise la logique du bouton admin et de la modal.
- * @param {HTMLElement} adminBtn - Le bouton déclencheur.
- * @param {HTMLElement} adminModal - La modal de connexion.
- * @param {HTMLElement} closeModal - Le bouton de fermeture de la modal.
- */
 export function initAdmin(adminBtn, adminModal, closeModal) {
     if (!adminBtn || !adminModal || !closeModal) {
-        console.error('Éléments Admin non trouvés dans le DOM.');
+        console.error('Éléments Admin non trouvés');
         return;
     }
 
@@ -414,7 +425,7 @@ export function initAdmin(adminBtn, adminModal, closeModal) {
             if (pinInputs.length > 0) {
                  pinInputs[0].focus();
             }
-        }, 100); 
+        }, 100);
     }
 
     adminBtn.addEventListener('click', () => {
@@ -423,11 +434,9 @@ export function initAdmin(adminBtn, adminModal, closeModal) {
             pinScreen.style.display = 'none';
             adminPanel.style.display = 'block';
             
-            // Initialisation de la vue du carrousel et migration des images de base si nécessaire
-            initCarouselManager(); 
-            initColorManager(); // NOUVEAU
+            initCarouselManager();
+            initColorManager();
 
-            // Activer le bon onglet (par défaut : Carrousel)
             const defaultTab = 'carousel-manager';
             document.querySelectorAll('.admin-tabs .tab-button').forEach(btn => {
                 btn.classList.remove('active');
@@ -482,9 +491,8 @@ export function initAdmin(adminBtn, adminModal, closeModal) {
                 setTimeout(() => {
                     pinScreen.style.display = 'none';
                     adminPanel.style.display = 'block';
-                    pinError.style.opacity = 0; 
+                    pinError.style.opacity = 0;
                     
-                    // Activer le bon onglet (par défaut : Carrousel)
                     const defaultTab = 'carousel-manager';
                     document.querySelectorAll('.admin-tabs .tab-button').forEach(btn => {
                          btn.classList.remove('active');
@@ -496,9 +504,9 @@ export function initAdmin(adminBtn, adminModal, closeModal) {
                         content.style.display = content.id === defaultTab ? 'block' : 'none';
                     });
                     
-                    initCarouselManager(); 
-                    initColorManager(); // NOUVEAU
-                }, 500); 
+                    initCarouselManager();
+                    initColorManager();
+                }, 500);
 
             } else {
                 isAdminLoggedIn = false;

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Esther Marty — Portfolio</title>
+    <title>Esther Marty – Portfolio</title>
     
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
@@ -12,10 +12,43 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700;800;900&family=Cormorant+Garamond:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     
-    <!-- Ajout de Font Awesome pour les icônes (rend l'interface plus ludique) -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     
     <link rel="stylesheet" href="style.css">
+
+    <!-- FIREBASE SDK v8 (Compatible) -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+    
+    <script>
+        // Configuration Firebase CORRIGÉE
+        const firebaseConfig = {
+            apiKey: "AIzaSyCnSK_GnRUccmzpgvqEqzUvrfkR3zS93-s",
+            authDomain: "sietesther.firebaseapp.com",
+            // CORRECTION : Utiliser l'URL correcte de la console
+            databaseURL: "https://sietesther-default-rtdb.europe-west1.firebasedatabase.app",
+            projectId: "sietesther",
+            storageBucket: "sietesther.firebasestorage.app",
+            messagingSenderId: "985361096728",
+            appId: "1:985361096728:web:0476ec0a89f91cfed9636d",
+            measurementId: "G-357RKZJDEY"
+        };
+        
+        // Initialisation avec gestion d'erreur
+        try {
+            if (typeof firebase !== 'undefined') {
+                firebase.initializeApp(firebaseConfig);
+                window.db = firebase.database();
+                console.log('✅ Firebase initialisé avec succès');
+            } else {
+                console.error("❌ Le SDK Firebase n'est pas chargé.");
+                window.db = null;
+            }
+        } catch (error) {
+            console.error('❌ Erreur initialisation Firebase:', error);
+            window.db = null;
+        }
+    </script>
 
 </head>
 <body>
@@ -39,19 +72,16 @@
         <div class="scroll-indicator">SCROLL</div>
     </section>
 
-    <!-- Ces sections créent l'espace de défilement pour les phases 3D -->
     <section class="scroll-3d-animation-section" id="scroll3dSection"></section>
     
     <section class="carousel-scroll-section" id="carouselScrollSection"></section>
 
-    <!-- SECTION PRINCIPALE DE CONTENU QUI DOIT APPARAÎTRE NORMALEMENT -->
     <section class="projects-section">
         <div class="projects-intro" id="projectsIntro">
             <h2>Projets</h2>
             <p>Travaux réalisés à l'École Estienne, Paris</p>
         </div>
         <div class="gallery" id="gallery">
-            <!-- Ajout de contenu de remplissage pour forcer l'affichage de la section -->
             <div class="project-card">
                 <h3>Projet Exemple 1</h3>
                 <p>Ceci est un espace réservé pour vérifier le défilement.</p>
@@ -60,7 +90,6 @@
                 <h3>Projet Exemple 2</h3>
                 <p>Ce contenu doit être visible après le défilement 3D.</p>
             </div>
-            <!-- Fin du contenu de remplissage -->
             
             <div class="empty-state">Aucun projet pour le moment</div>
         </div>
@@ -70,7 +99,6 @@
         <div class="modal">
             <button class="modal-close" id="closeModal">&times;</button>
             
-            <!-- CONTENEUR DE CONNEXION PAR CODE PIN -->
             <div class="pin-screen" id="pinScreen">
                 <h2>Accès Sécurisé</h2>
                 <p class="pin-instructions">Veuillez entrer le code à 4 chiffres.</p>
@@ -83,31 +111,27 @@
                 <div class="pin-error" id="pinError" style="opacity:0;"></div>
             </div>
             
-            <!-- CONTENEUR DU MENU MANAGER (Minimaliste) -->
             <div class="admin-panel" id="adminPanel" style="display:none;">
                 <h2 class="admin-title">Panneau d'Administration</h2>
                 
-                <!-- NAVIGATION PAR ONGLET -->
                 <div class="admin-tabs">
-                    <button class="tab-button active" data-tab="dashboard" title="Statistiques rapides">
+                    <button class="tab-button active" data-tab="dashboard">
                         <i class="fas fa-rocket"></i> Dashboard
                     </button>
-                    <button class="tab-button" data-tab="carousel-manager" title="Gérer les images du carrousel 3D">
+                    <button class="tab-button" data-tab="carousel-manager">
                         <i class="fas fa-camera-retro"></i> Carrousel
                     </button>
-                    <!-- NOUVEAU : Bouton pour les couleurs -->
-                    <button class="tab-button" data-tab="color-manager" title="Ajuster les couleurs de fond des phases 3D">
+                    <button class="tab-button" data-tab="color-manager">
                         <i class="fas fa-palette"></i> Couleurs
                     </button>
-                    <button class="tab-button" data-tab="add-project" title="Ajouter/publier un projet dans la galerie">
+                    <button class="tab-button" data-tab="add-project">
                         <i class="fas fa-plus-circle"></i> Projet
                     </button>
-                    <button class="tab-button" data-tab="settings" title="Ajuster les réglages 3D">
+                    <button class="tab-button" data-tab="settings">
                         <i class="fas fa-cogs"></i> Réglages
                     </button>
                 </div>
 
-                <!-- CONTENU DES ONGLETS -->
                 <div class="tab-content active" id="dashboard">
                     <h3>Statut du Portfolio</h3>
                     <div class="stat-cards">
@@ -126,40 +150,32 @@
                     </div>
                 </div>
 
-                <!-- NOUVEL ONGLET MINIMALISTE : GESTION CARROUSEL -->
                 <div class="tab-content" id="carousel-manager" style="display:none;">
-                    <h3>Gestion des Images du Carrousel <i class="fas fa-info-circle info-icon" title="Les images de base sont maintenant modifiables car elles sont stockées localement."></i></h3>
+                    <h3>Gestion des Images du Carrousel</h3>
                     <div id="carouselManager">
-                        <!-- ÉLÉMENT D'UPLOAD MINIMALISTE -->
                         <div class="form-group file-upload simple-upload-box">
                             <label for="imageFileInput" class="file-label file-label-minimal">
                                 <i class="fas fa-plus-square"></i> Ajouter une Image (Max 15)
                             </label>
-                            <!-- NOTE: L'ID ici est crucial et est utilisé dans adminManager.js -->
                             <input type="file" id="imageFileInput" accept="image/*" style="display: none;">
                         </div>
                         
                         <hr class="minimal-hr">
                         
-                        <h4>Liste Complète des Images <i class="fas fa-list-alt info-icon" title="Toutes les images sont modifiables et supprimables."></i></h4>
-                        <!-- NOTE: L'ID ici est crucial et est utilisé dans adminManager.js pour le rendu de la liste -->
+                        <h4>Liste Complète des Images</h4>
                         <ul id="adminImageList" class="minimal-list">
-                            <!-- La liste d'images (avec aperçu et bouton supprimer) sera rendue ici par adminManager.js -->
                             <li>Chargement de la liste...</li>
                         </ul>
                     </div>
                 </div>
                 
-                <!-- NOUVEAU : Contenu pour les Couleurs -->
                 <div class="tab-content" id="color-manager" style="display:none;">
                     <h3>🎨 Couleurs des Phases 3D</h3>
-                    <p class="minimal-note">Modifiez les couleurs de fond pour chaque phase de transition du site. Les changements sont appliqués en temps réel après la sauvegarde.</p>
+                    <p class="minimal-note">Modifiez les couleurs de fond pour chaque phase de transition du site.</p>
                     <div id="colorManager" style="padding: 10px; border: 1px solid #ddd; border-radius: 4px; background: #fcfcfc;">
-                        <!-- Les inputs seront injectés ici par adminManager.js -->
                     </div>
                 </div>
 
-                <!-- NOUVEL ONGLET MINIMALISTE : AJOUTER PROJET -->
                 <div class="tab-content" id="add-project" style="display:none;">
                     <h3>Ajouter un Projet</h3>
                     <form class="admin-form" id="projectForm">
@@ -169,11 +185,11 @@
                         </div>
                         <div class="form-group">
                             <label for="projectDesc"><i class="fas fa-align-left"></i> Description</label>
-                            <textarea id="projectDesc" placeholder="Description courte (galerie)" required></textarea>
+                            <textarea id="projectDesc" placeholder="Description courte" required></textarea>
                         </div>
                         <div class="form-group file-upload simple-upload-box">
                             <label for="projectImage" class="file-label file-label-minimal">
-                                <i class="fas fa-image"></i> Image Principale du Projet
+                                <i class="fas fa-image"></i> Image Principale
                             </label>
                             <input type="file" id="projectImage" accept="image/*" required>
                         </div>
@@ -184,7 +200,7 @@
 
                 <div class="tab-content" id="settings" style="display:none;">
                     <h3>Contrôles 3D</h3>
-                    <p class="minimal-note">Ajustez la vitesse de défilement du tapis ou d'autres paramètres 3D.</p>
+                    <p class="minimal-note">Ajustez la vitesse de défilement.</p>
                     <div class="setting-group">
                         <label for="trainSpeed">Vitesse du Tapis :</label>
                         <input type="range" id="trainSpeed" min="0.001" max="0.1" step="0.001">
@@ -199,7 +215,6 @@
     <script type="module" src="javascript/main.js"></script>
     
     <script>
-        // Logique de bascule des onglets (pour rendre l'interface fonctionnelle sans JS externe)
         document.addEventListener('DOMContentLoaded', () => {
             const tabs = document.querySelectorAll('.admin-tabs .tab-button');
             const contents = document.querySelectorAll('.admin-panel .tab-content');
@@ -207,31 +222,18 @@
             tabs.forEach(tab => {
                 tab.addEventListener('click', () => {
                     const targetId = tab.getAttribute('data-tab');
-
-                    // Désactiver tous les onglets et contenus
                     tabs.forEach(t => t.classList.remove('active'));
                     contents.forEach(c => c.style.display = 'none');
-
-                    // Activer l'onglet cliqué et le contenu correspondant
                     tab.classList.add('active');
                     const targetContent = document.getElementById(targetId);
                     if (targetContent) {
                         targetContent.style.display = 'block';
                     }
-                    
-                    // NOUVEAU : Forcer l'initialisation du Color Manager lorsque l'onglet est cliqué
-                    // Cela garantit que les inputs sont bien générés.
-                    if (targetId === 'color-manager') {
-                        // Assurez-vous que initColorManager est appelé par initAdmin
-                        // Si adminManager.js est bien chargé, les inputs seront générés.
-                    }
                 });
             });
             
-            // Logique de prévisualisation d'image (pour l'onglet Ajouter Projet)
             const projectImageInput = document.getElementById('projectImage');
             const imagePreview = document.getElementById('imagePreview');
-            // Suppression de la logique fileNameDisplay pour le carrousel (minimalisme)
             
             if (projectImageInput && imagePreview) {
                 projectImageInput.addEventListener('change', function() {
