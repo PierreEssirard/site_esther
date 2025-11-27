@@ -6,11 +6,21 @@ import { imageFiles } from './phase3Carousel.js';
 const ADMIN_CODE = '0000'; // Code secret de l'administrateur
 let isAdminLoggedIn = false; // État de connexion
 
+// NOUVEAU: Constantes de couleur par défaut et clé de stockage
+const DEFAULT_COLORS = {
+    COLOR_PHASE1: '#c92e2e', // Rouge
+    COLOR_PHASE2: '#c84508', // Orange
+    COLOR_PHASE3: '#f57e43', // Pêche
+};
+const COLOR_STORAGE_KEY = 'phase_background_colors';
+
 // NOUVEAU: Clé pour vérifier si les images de base ont déjà été copiées/initialisées dans le localStorage.
 const BASE_INITIALIZED_KEY = 'carousel_base_initialized';
 
-// NOUVEAU: Callback pour le rechargement de l'application (initialisé à une fonction vide)
+// NOUVEAU: Callback pour le rechargement de l'application (pour le carrousel)
 let updateCallback = () => {};
+// NOUVEAU: Callback pour la mise à jour des couleurs (pour main.js)
+let updateColorCallback = () => {}; 
 
 // ==========================================================
 // LOGIQUE DE GESTION DU CARROUSEL (Local Storage)
@@ -48,7 +58,6 @@ function saveAdminImages(images) {
 /**
  * NOUVEAU: Initialise le stockage local du carrousel en y incluant
  * les images de base (P1.jpeg, etc.) si ce n'est pas déjà fait.
- * Cette fonction permet de tout gérer dans un seul tableau modifiable.
  */
 function initializeImageStorage() {
     const isInitialized = localStorage.getItem(BASE_INITIALIZED_KEY);
@@ -245,13 +254,119 @@ function initCarouselManager() {
 }
 
 
+// ==========================================================
+// LOGIQUE DE GESTION DES COULEURS DE PHASE (NOUVEAU)
+// ==========================================================
+
 /**
- * Définit la fonction à appeler lorsqu'un changement critique nécessite un rechargement.
+ * Charge les couleurs de fond depuis le Local Storage ou utilise les valeurs par défaut.
+ * @returns {object} Un objet avec les clés COLOR_PHASE1, COLOR_PHASE2, COLOR_PHASE3.
+ */
+export function getPhaseColors() {
+    try {
+        const json = localStorage.getItem(COLOR_STORAGE_KEY);
+        // Fusionne les couleurs stockées avec les couleurs par défaut pour éviter les erreurs
+        return json ? { ...DEFAULT_COLORS, ...JSON.parse(json) } : DEFAULT_COLORS;
+    } catch (e) {
+        console.error("Erreur de lecture des couleurs du Local Storage:", e);
+        return DEFAULT_COLORS;
+    }
+}
+
+/**
+ * Sauvegarde les couleurs de fond dans le Local Storage.
+ * @param {object} colors - L'objet de couleurs à sauvegarder.
+ */
+function savePhaseColors(colors) {
+    try {
+        localStorage.setItem(COLOR_STORAGE_KEY, JSON.stringify(colors));
+        
+        // Notifie l'application principale que les couleurs ont changé
+        updateColorCallback(); 
+        
+    } catch (e) {
+        console.error("Erreur d'écriture des couleurs dans le Local Storage:", e);
+    }
+}
+
+/**
+ * Initialise l'interface de gestion des couleurs.
+ */
+function initColorManager() {
+    const colorManagerDiv = document.getElementById('colorManager');
+    if (!colorManagerDiv) {
+        // Cette fonction sera appelée à chaque ouverture du panneau
+        // Nous allons générer le contenu HTML ici
+        return; 
+    }
+    
+    // Récupérer les couleurs actuelles pour remplir les inputs
+    const currentColors = getPhaseColors();
+    
+    colorManagerDiv.innerHTML = `
+        <div style="margin-bottom: 15px;">
+            <label for="colorPhase1" style="display: block; margin-bottom: 5px; font-weight: bold; color: #333;">Couleur de Fond - Phase 1</label>
+            <input type="color" id="colorPhase1" value="${currentColors.COLOR_PHASE1}" style="width: 100%; height: 40px; border: 1px solid #ccc; border-radius: 4px;">
+        </div>
+        <div style="margin-bottom: 15px;">
+            <label for="colorPhase2" style="display: block; margin-bottom: 5px; font-weight: bold; color: #333;">Couleur de Fond - Phase 2</label>
+            <input type="color" id="colorPhase2" value="${currentColors.COLOR_PHASE2}" style="width: 100%; height: 40px; border: 1px solid #ccc; border-radius: 4px;">
+        </div>
+        <div style="margin-bottom: 15px;">
+            <label for="colorPhase3" style="display: block; margin-bottom: 5px; font-weight: bold; color: #333;">Couleur de Fond - Phase 3</label>
+            <input type="color" id="colorPhase3" value="${currentColors.COLOR_PHASE3}" style="width: 100%; height: 40px; border: 1px solid #ccc; border-radius: 4px;">
+        </div>
+        <button id="saveColorsBtn" style="background: var(--color-primary, #c92e2e); color: white; padding: 10px 15px; border: none; border-radius: 4px; cursor: pointer; transition: background 0.3s;">
+            Sauvegarder et Appliquer
+        </button>
+        <button id="resetColorsBtn" style="background: #999; color: white; padding: 10px 15px; border: none; border-radius: 4px; cursor: pointer; margin-left: 10px; transition: background 0.3s;">
+            Réinitialiser les Couleurs
+        </button>
+    `;
+    
+    const saveBtn = document.getElementById('saveColorsBtn');
+    const resetBtn = document.getElementById('resetColorsBtn');
+    
+    saveBtn.onclick = () => {
+        const newColors = {
+            COLOR_PHASE1: document.getElementById('colorPhase1').value,
+            COLOR_PHASE2: document.getElementById('colorPhase2').value,
+            COLOR_PHASE3: document.getElementById('colorPhase3').value,
+        };
+        savePhaseColors(newColors);
+        // Note: L'updateColorCallback appelle main.js pour mettre à jour la scène.
+        // Utiliser une alerte personnalisée si ce code était dans le HTML
+        console.log('Couleurs sauvegardées et appliquées en temps réel !');
+    };
+    
+    resetBtn.onclick = () => {
+        savePhaseColors(DEFAULT_COLORS);
+        // Met à jour les inputs après la réinitialisation
+        document.getElementById('colorPhase1').value = DEFAULT_COLORS.COLOR_PHASE1;
+        document.getElementById('colorPhase2').value = DEFAULT_COLORS.COLOR_PHASE2;
+        document.getElementById('colorPhase3').value = DEFAULT_COLORS.COLOR_PHASE3;
+        console.log('Couleurs réinitialisées et appliquées !');
+    };
+}
+
+
+/**
+ * Définit la fonction à appeler lorsqu'un changement critique nécessite un rechargement (Carrousel).
  * @param {function} callback 
  */
 export function setUpdateCallback(callback) {
     if (typeof callback === 'function') {
         updateCallback = callback;
+    }
+}
+
+/**
+ * Définit la fonction à appeler lorsqu'un changement de couleur nécessite une mise à jour de la scène (Couleurs).
+ * @param {function} callback 
+ */
+export function setUpdateColorCallback(callback) {
+    if (typeof callback === 'function') {
+        updateColorCallback = callback;
     }
 }
 
@@ -310,16 +425,18 @@ export function initAdmin(adminBtn, adminModal, closeModal) {
             
             // Initialisation de la vue du carrousel et migration des images de base si nécessaire
             initCarouselManager(); 
-            
+            initColorManager(); // NOUVEAU
+
+            // Activer le bon onglet (par défaut : Carrousel)
+            const defaultTab = 'carousel-manager';
             document.querySelectorAll('.admin-tabs .tab-button').forEach(btn => {
-                if (btn.getAttribute('data-tab') === 'carousel-manager') {
+                btn.classList.remove('active');
+                if (btn.getAttribute('data-tab') === defaultTab) {
                     btn.classList.add('active');
-                } else {
-                    btn.classList.remove('active');
                 }
             });
             document.querySelectorAll('.admin-panel .tab-content').forEach(content => {
-                content.style.display = content.id === 'carousel-manager' ? 'block' : 'none';
+                content.style.display = content.id === defaultTab ? 'block' : 'none';
             });
             
         } else {
@@ -367,18 +484,20 @@ export function initAdmin(adminBtn, adminModal, closeModal) {
                     adminPanel.style.display = 'block';
                     pinError.style.opacity = 0; 
                     
+                    // Activer le bon onglet (par défaut : Carrousel)
+                    const defaultTab = 'carousel-manager';
                     document.querySelectorAll('.admin-tabs .tab-button').forEach(btn => {
-                        if (btn.getAttribute('data-tab') === 'carousel-manager') {
-                            btn.classList.add('active');
-                        } else {
-                            btn.classList.remove('active');
-                        }
+                         btn.classList.remove('active');
+                         if (btn.getAttribute('data-tab') === defaultTab) {
+                             btn.classList.add('active');
+                         }
                     });
                     document.querySelectorAll('.admin-panel .tab-content').forEach(content => {
-                        content.style.display = content.id === 'carousel-manager' ? 'block' : 'none';
+                        content.style.display = content.id === defaultTab ? 'block' : 'none';
                     });
                     
                     initCarouselManager(); 
+                    initColorManager(); // NOUVEAU
                 }, 500); 
 
             } else {

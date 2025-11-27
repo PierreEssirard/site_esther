@@ -14,7 +14,11 @@ import {
     mouse3D, preloadCarouselTextures 
 } from './phase3Carousel.js';
 // NOUVEAU: Import du manager d'administration
-import { initAdmin, getAdminStatus, setUpdateCallback } from './adminManager.js'; // Import de setUpdateCallback
+import { 
+    initAdmin, getAdminStatus, setUpdateCallback, 
+    // NOUVEAU: Import des fonctions pour les couleurs
+    getPhaseColors, setUpdateColorCallback 
+} from './adminManager.js'; // Import de setUpdateCallback
 
 // ==========================================================
 // 0. ÉCRAN DE CHARGEMENT
@@ -81,11 +85,15 @@ function updateProgress(percent) {
 // ==========================================================
 const canvas = document.getElementById('canvas3d');
 const scene = new THREE.Scene();
-scene.background = new THREE.Color(0xc92e2e); // Couleur de départ (Rouge)
 
-const COLOR_PHASE1 = new THREE.Color(0xc92e2e);
-const COLOR_PHASE2 = new THREE.Color(0xc84508); 
-const COLOR_PHASE3 = new THREE.Color(0xf57e43);
+// NOUVEAU: Objet pour stocker les couleurs et fonction de mise à jour
+let phaseColors = getPhaseColors(); 
+scene.background = new THREE.Color(phaseColors.COLOR_PHASE1); // Couleur de départ
+
+// Anciennes constantes de couleur supprimées.
+// const COLOR_PHASE1 = new THREE.Color(0xc92e2e);
+// const COLOR_PHASE2 = new THREE.Color(0xc84508); 
+// const COLOR_PHASE3 = new THREE.Color(0xf57e43);
 
 const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
@@ -128,7 +136,17 @@ let fallingCubes = [];
 
 let isAppReady = false;
 
-// NOUVEAU: Fonction pour afficher un message d'alerte sans utiliser alert()
+// NOUVEAU: Fonction pour mettre à jour la couleur de fond en temps réel
+function updateSceneColors() {
+    // Récupère les dernières couleurs du stockage local
+    phaseColors = getPhaseColors(); 
+    // Met à jour la couleur de fond de la scène avec la couleur de la phase 1
+    scene.background.set(phaseColors.COLOR_PHASE1);
+    console.log('Couleurs de phase mises à jour.');
+}
+
+
+// Fonction pour afficher un message d'alerte sans utiliser alert()
 function showUpdateMessage() {
     // Créer un message temporaire en haut de l'écran
     const message = document.createElement('div');
@@ -230,6 +248,7 @@ if (heroContent) {
 
 // NOUVEAU: Connecter la fonction de rechargement à l'Admin Manager
 setUpdateCallback(showUpdateMessage);
+setUpdateColorCallback(updateSceneColors); // NOUVEAU: Connecter la fonction de mise à jour des couleurs
 
 
 window.addEventListener('resize', () => { 
@@ -368,15 +387,24 @@ function animate() {
         phase2to3Transition = Math.max(0, Math.min(1, (scrollY - (phase2End - heroHeight)) / (heroHeight * 2))); 
     }
 
-    let targetColor = COLOR_PHASE1.clone();
+    // MODIFICATION: Utilisation de l'objet phaseColors
+    let targetColor = new THREE.Color(phaseColors.COLOR_PHASE1);
     
     // Logique de transition des couleurs
     if (phase1to2Transition < 1) {
-        targetColor.lerpColors(COLOR_PHASE1, COLOR_PHASE2, phase1to2Transition);
+        targetColor.lerpColors(
+            new THREE.Color(phaseColors.COLOR_PHASE1), 
+            new THREE.Color(phaseColors.COLOR_PHASE2), 
+            phase1to2Transition
+        );
     } else if (phase2to3Transition < 1) {
-        targetColor.lerpColors(COLOR_PHASE2, COLOR_PHASE3, phase2to3Transition);
+        targetColor.lerpColors(
+            new THREE.Color(phaseColors.COLOR_PHASE2), 
+            new THREE.Color(phaseColors.COLOR_PHASE3), 
+            phase2to3Transition
+        );
     } else {
-        targetColor = COLOR_PHASE3;
+        targetColor.set(phaseColors.COLOR_PHASE3);
     }
     scene.background.copy(targetColor);
     
