@@ -14,8 +14,7 @@ import {
     mouse3D, preloadCarouselTextures 
 } from './phase3Carousel.js';
 // NOUVEAU: Import du manager d'administration
-// Ajout de getAdminImages
-import { initAdmin, getAdminStatus, getAdminImages } from './adminManager.js'; 
+import { initAdmin, getAdminStatus, setUpdateCallback } from './adminManager.js'; // Import de setUpdateCallback
 
 // ==========================================================
 // 0. ÉCRAN DE CHARGEMENT
@@ -129,6 +128,33 @@ let fallingCubes = [];
 
 let isAppReady = false;
 
+// NOUVEAU: Fonction pour afficher un message d'alerte sans utiliser alert()
+function showUpdateMessage() {
+    // Créer un message temporaire en haut de l'écran
+    const message = document.createElement('div');
+    message.textContent = "Modification du Carrousel détectée. Rechargement de la page pour mettre à jour la scène 3D...";
+    message.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        background: #c84508;
+        color: white;
+        padding: 10px;
+        text-align: center;
+        font-family: 'Cormorant Garamond', serif;
+        z-index: 10001;
+        transition: opacity 0.5s ease;
+    `;
+    document.body.appendChild(message);
+
+    // Recharger la page après un court délai pour que l'utilisateur lise le message
+    setTimeout(() => {
+        window.location.reload();
+    }, 2000); // 2 secondes
+}
+
+
 async function initializeApp() {
     try {
         let completedTasks = 0;
@@ -152,10 +178,9 @@ async function initializeApp() {
             console.log('✓ Textures du cube chargées');
         });
         
-        // preloadCarouselTextures inclut maintenant les images de l'admin
         const carouselPromise = preloadCarouselTextures().then(() => {
             updateLoadingProgress();
-            console.log('✓ Textures du carrousel chargées (incl. admin)');
+            console.log('✓ Textures du carrousel chargées');
         });
         
         await Promise.all([modelPromise, cubePromise, carouselPromise]);
@@ -202,6 +227,11 @@ if (heroContent) {
 // ==========================================================
 // 4. GESTION DES ÉVÉNEMENTS
 // ==========================================================
+
+// NOUVEAU: Connecter la fonction de rechargement à l'Admin Manager
+setUpdateCallback(showUpdateMessage);
+
+
 window.addEventListener('resize', () => { 
     setRendererToCanvasSize(renderer, camera); 
     adjustCameraForScreen(camera, phase1Group); 

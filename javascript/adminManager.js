@@ -1,21 +1,31 @@
 // javascript/adminManager.js
 
+// NOUVEAU: Import de la liste des fichiers d'images de base depuis phase3Carousel
+import { imageFiles } from './phase3Carousel.js'; 
+
 const ADMIN_CODE = '0000'; // Code secret de l'administrateur
 let isAdminLoggedIn = false; // État de connexion
 
+// NOUVEAU: Clé pour vérifier si les images de base ont déjà été copiées/initialisées dans le localStorage.
+const BASE_INITIALIZED_KEY = 'carousel_base_initialized';
+
+// NOUVEAU: Callback pour le rechargement de l'application (initialisé à une fonction vide)
+let updateCallback = () => {};
+
 // ==========================================================
-// NOUVEAU: LOGIQUE DE GESTION DU CARROUSEL (Local Storage)
+// LOGIQUE DE GESTION DU CARROUSEL (Local Storage)
 // ==========================================================
 
 const STORAGE_KEY = 'carousel_admin_images';
 
 /**
  * Charge la liste des images administrateur depuis le Local Storage.
- * @returns {Array<string>} Tableau de chaînes de caractères Base64.
+ * @returns {Array<string>} Tableau de chaînes de caractères Base64 (ou noms de fichiers pour les images de base).
  */
 function loadAdminImages() {
     try {
         const json = localStorage.getItem(STORAGE_KEY);
+        // Les images peuvent être soit des Base64, soit des chemins de fichiers comme 'P1.jpeg'
         return json ? JSON.parse(json) : [];
     } catch (e) {
         console.error("Erreur de lecture du Local Storage:", e);
@@ -25,7 +35,7 @@ function loadAdminImages() {
 
 /**
  * Sauvegarde la liste des images administrateur dans le Local Storage.
- * @param {Array<string>} images - Tableau de chaînes de caractères Base64.
+ * @param {Array<string>} images - Tableau de chaînes de caractères Base64 ou chemins de fichiers.
  */
 function saveAdminImages(images) {
     try {
@@ -36,9 +46,36 @@ function saveAdminImages(images) {
 }
 
 /**
+ * NOUVEAU: Initialise le stockage local du carrousel en y incluant
+ * les images de base (P1.jpeg, etc.) si ce n'est pas déjà fait.
+ * Cette fonction permet de tout gérer dans un seul tableau modifiable.
+ */
+function initializeImageStorage() {
+    const isInitialized = localStorage.getItem(BASE_INITIALIZED_KEY);
+    
+    if (isInitialized !== 'true') {
+        const existingImages = loadAdminImages();
+        
+        // On fusionne les images de base (fichiers) avec les images admin existantes
+        const combinedImages = [...imageFiles, ...existingImages];
+        
+        saveAdminImages(combinedImages);
+        localStorage.setItem(BASE_INITIALIZED_KEY, 'true');
+        
+        console.log('Images de base migrées vers le stockage local pour permettre la suppression/modification.');
+        
+        // Notifier le rechargement pour que phase3Carousel.js ait la liste complète
+        updateCallback();
+    }
+}
+
+/**
  * Initialise l'interface de gestion du carrousel.
  */
 function initCarouselManager() {
+    // Appel de la nouvelle fonction d'initialisation au démarrage du gestionnaire
+    initializeImageStorage(); 
+    
     const carouselManagerDiv = document.getElementById('carouselManager');
     const imageList = document.getElementById('adminImageList');
     const fileInput = document.getElementById('imageFileInput');
@@ -48,50 +85,103 @@ function initCarouselManager() {
         return;
     }
 
-    // Fonction de rendu de la liste d'images
-    function renderImageList() {
-        imageList.innerHTML = '';
+    // Fonction de suppression d'image (MAJ: fonctionne sur tous les éléments du tableau)
+    function deleteImage(index) {
         const images = loadAdminImages();
         
-        if (images.length === 0) {
-            imageList.innerHTML = '<li style="color: #555; font-style: italic;">Aucune image ajoutée.</li>';
+        if (index < 0 || index >= images.length) {
+            console.error("Index d'image invalide pour la suppression.");
+            return;
+        }
+        
+        images.splice(index, 1);
+        saveAdminImages(images);
+        renderImageList();
+        
+        // APPEL NOUVEAU: Notifie l'application principale que le carrousel doit être mis à jour
+        console.log('Image supprimée. Notification de rechargement en cours.');
+        updateCallback(); 
+    }
+
+    // Fonction de rendu de la liste d'images (MAJ: traite tous les éléments comme étant dans le même tableau)
+    function renderImageList() {
+        imageList.innerHTML = '';
+        const allImages = loadAdminImages(); // MAJ: Charger TOUTES les images (Base + Admin)
+        
+        // 1. Gérer l'état vide total
+        if (allImages.length === 0) {
+            imageList.innerHTML = '<li style="color: #555; font-style: italic; padding: 10px 0;">Aucune image dans le carrousel. Ajoutez-en une !</li>';
             return;
         }
 
-        images.forEach((imgBase64, index) => {
+        // Ajout d'un titre de section unique (tout est dans le même tableau)
+        const title = document.createElement('h4');
+        title.textContent = `Liste des Images du Carrousel (${allImages.length} au total)`;
+        title.style.marginTop = '15px';
+        title.style.marginBottom = '10px';
+        title.style.color = 'var(--color-primary)';
+        title.style.fontSize = '1em';
+        imageList.appendChild(title);
+        
+        // 2. Affichage des images
+        allImages.forEach((imgSource, index) => {
+            const isBase64 = imgSource.startsWith('data:image/'); // Vérifie si c'est une image Base64 ou un nom de fichier
+            
             const li = document.createElement('li');
             li.style.display = 'flex';
             li.style.alignItems = 'center';
-            li.style.marginBottom = '10px';
+            li.style.marginBottom = '5px';
             li.style.padding = '5px';
-            li.style.borderBottom = '1px solid #eee';
+            li.style.borderBottom = '1px dashed #eee'; 
 
-            const img = document.createElement('img');
-            img.src = imgBase64;
-            img.alt = `Image Admin ${index + 1}`;
-            img.style.width = '60px';
-            img.style.height = '40px';
-            img.style.marginRight = '15px';
-            img.style.objectFit = 'cover';
-            img.style.borderRadius = '3px';
-            li.appendChild(img);
+            // Affichage de l'aperçu ou d'une icône pour les fichiers
+            if (isBase64) {
+                const img = document.createElement('img');
+                img.src = imgSource;
+                img.alt = `Image Admin ${index + 1}`;
+                img.style.width = '50px'; 
+                img.style.height = '35px'; 
+                img.style.marginRight = '15px';
+                img.style.objectFit = 'cover';
+                img.style.borderRadius = '2px';
+                img.style.border = '1px solid #ddd'; 
+                li.appendChild(img);
+            } else {
+                const icon = document.createElement('i');
+                icon.className = 'fas fa-image';
+                icon.style.color = 'var(--color-secondary)';
+                icon.style.marginRight = '15px';
+                icon.style.fontSize = '1.2em';
+                icon.style.minWidth = '50px';
+                icon.style.textAlign = 'center';
+                li.appendChild(icon);
+            }
 
             const label = document.createElement('span');
-            label.textContent = `Image ${index + 1} (Base64)`;
+            label.textContent = isBase64 ? `Admin ${index + 1}` : imgSource; // Affiche le nom de fichier pour les images de base
+            label.style.fontSize = '0.9em';
+            label.style.color = '#333';
             li.appendChild(label);
 
             const deleteBtn = document.createElement('button');
-            deleteBtn.textContent = 'Supprimer';
+            deleteBtn.innerHTML = '<i class="fas fa-trash-alt"></i>'; 
+            deleteBtn.title = 'Supprimer l\'image';
             deleteBtn.style.marginLeft = 'auto';
-            deleteBtn.style.background = '#d9534f';
-            deleteBtn.style.color = 'white';
+            deleteBtn.style.background = 'none';
+            deleteBtn.style.color = '#d9534f';
             deleteBtn.style.border = 'none';
-            deleteBtn.style.padding = '5px 10px';
+            deleteBtn.style.padding = '5px';
             deleteBtn.style.borderRadius = '3px';
             deleteBtn.style.cursor = 'pointer';
+            deleteBtn.style.transition = 'color 0.2s';
+            deleteBtn.style.fontSize = '1.1em';
+            deleteBtn.onmouseover = () => deleteBtn.style.color = '#c92e2e';
+            deleteBtn.onmouseout = () => deleteBtn.style.color = '#d9534f';
 
-            deleteBtn.onclick = () => {
-                deleteImage(index);
+            deleteBtn.onclick = (e) => {
+                e.preventDefault();
+                // Utilise l'index de allImages pour supprimer l'élément, qu'il soit Base ou Admin
+                deleteImage(index); 
             };
             li.appendChild(deleteBtn);
             imageList.appendChild(li);
@@ -108,55 +198,62 @@ function initCarouselManager() {
                 const images = loadAdminImages();
                 
                 if (images.length >= 15) { 
-                    // Limite arbitraire pour éviter de saturer le localStorage
-                    alert('Maximum 15 images d\'administrateur atteint. Veuillez en supprimer d\'abord.');
+                    console.warn('Limite maximale de 15 images administrateur atteinte. Veuillez en supprimer d\'abord.');
                     return;
                 }
 
                 images.push(newImage);
                 saveAdminImages(images);
                 renderImageList();
-                // Utiliser une boîte de message personnalisée au lieu d'alert() si possible dans votre HTML
-                console.log('Image ajoutée. Rafraîchissez la page pour la voir dans le carrousel.');
+                
+                console.log('Image ajoutée. Notification de rechargement en cours.');
+                updateCallback(); 
+
                 fileInput.value = ''; // Réinitialiser le champ
             };
             reader.readAsDataURL(file);
         }
     };
     
-    // Fonction de suppression d'image
-    function deleteImage(index) {
-        // Remplacer 'confirm' par une modal UI personnalisée
-        if (!window.confirm('Êtes-vous sûr de vouloir supprimer cette image ? (Nécessite de rafraîchir la page pour être retirée du carrousel)')) return;
-
-        const images = loadAdminImages();
-        images.splice(index, 1);
-        saveAdminImages(images);
-        renderImageList();
-        // Utiliser une boîte de message personnalisée
-        console.log('Image supprimée. Rafraîchissez la page pour mettre à jour le carrousel.');
-    }
-
     // Observer pour rafraîchir la liste lorsque le panneau admin est visible
-    // Note: Cela dépend de votre structure HTML, mais l'idée est de s'assurer
-    // que `renderImageList` est appelé lorsque `adminPanel` devient visible.
     const adminPanel = document.getElementById('adminPanel');
     if (adminPanel) {
-        // Lorsque l'on passe de l'écran de PIN au panneau
-        const observer = new MutationObserver(() => {
-            if (adminPanel.style.display === 'block') {
+        const observer = new MutationObserver((mutationsList, observer) => {
+            const isPanelVisible = adminPanel.style.display === 'block';
+            const carouselTab = document.querySelector('.tab-button[data-tab="carousel-manager"]');
+            const isCarouselActive = carouselTab && carouselTab.classList.contains('active');
+            
+            if (isPanelVisible && isCarouselActive) {
                 renderImageList();
             }
         });
         observer.observe(adminPanel, { attributes: true, attributeFilter: ['style'] });
+
+        const tabContainer = document.querySelector('.admin-tabs');
+        if (tabContainer) {
+             tabContainer.addEventListener('click', (e) => {
+                if (e.target.getAttribute('data-tab') === 'carousel-manager' && isAdminLoggedIn) {
+                    setTimeout(renderImageList, 100); 
+                }
+             });
+        }
     }
 
-    // Rendre la liste à l'initialisation si l'admin est déjà connecté
     if (isAdminLoggedIn) {
         renderImageList();
     }
 }
 
+
+/**
+ * Définit la fonction à appeler lorsqu'un changement critique nécessite un rechargement.
+ * @param {function} callback 
+ */
+export function setUpdateCallback(callback) {
+    if (typeof callback === 'function') {
+        updateCallback = callback;
+    }
+}
 
 /**
  * Renvoie l'état de connexion de l'administrateur.
@@ -192,14 +289,12 @@ export function initAdmin(adminBtn, adminModal, closeModal) {
     const adminPanel = document.getElementById('adminPanel');
     const pinError = document.getElementById('pinError');
 
-    // Réinitialisation de l'état visuel à l'ouverture de la modal
     function resetModal() {
         pinInputs.forEach(input => input.value = '');
         pinError.style.opacity = 0;
         pinScreen.style.display = 'block';
         adminPanel.style.display = 'none';
         
-        // Assurer le focus sur le premier champ après un petit délai
         setTimeout(() => {
             if (pinInputs.length > 0) {
                  pinInputs[0].focus();
@@ -207,45 +302,50 @@ export function initAdmin(adminBtn, adminModal, closeModal) {
         }, 100); 
     }
 
-    // Événement d'ouverture de la modal
     adminBtn.addEventListener('click', () => {
         adminModal.classList.add('active');
         if (isAdminLoggedIn) {
-            // Si déjà connecté, afficher le panneau directement
             pinScreen.style.display = 'none';
             adminPanel.style.display = 'block';
-            // Rendre la liste des images immédiatement
-            initCarouselManager();
+            
+            // Initialisation de la vue du carrousel et migration des images de base si nécessaire
+            initCarouselManager(); 
+            
+            document.querySelectorAll('.admin-tabs .tab-button').forEach(btn => {
+                if (btn.getAttribute('data-tab') === 'carousel-manager') {
+                    btn.classList.add('active');
+                } else {
+                    btn.classList.remove('active');
+                }
+            });
+            document.querySelectorAll('.admin-panel .tab-content').forEach(content => {
+                content.style.display = content.id === 'carousel-manager' ? 'block' : 'none';
+            });
+            
         } else {
             resetModal();
         }
     });
 
-    // Événement de fermeture de la modal
     closeModal.addEventListener('click', () => {
         adminModal.classList.remove('active');
     });
 
-    // Gestion de la saisie des PINs
     pinInputs.forEach((input, index) => {
         input.addEventListener('input', () => {
-            // Passe automatiquement au champ suivant si un caractère est entré
             if (input.value.length === 1 && index < pinInputs.length - 1) {
                 pinInputs[index + 1].focus();
             }
             attemptLogin();
         });
 
-        // Gérer le retour arrière (Backspace)
         input.addEventListener('keydown', (e) => {
             if (e.key === 'Backspace' && input.value === '' && index > 0) {
                 pinInputs[index - 1].focus();
             }
         });
         
-        // Empêcher l'entrée de caractères non numériques (juste au cas où)
         input.addEventListener('keypress', (e) => {
-            // Seuls les chiffres sont autorisés
             if (e.key === ' ' || isNaN(parseInt(e.key))) {
                 e.preventDefault();
             }
@@ -262,14 +362,24 @@ export function initAdmin(adminBtn, adminModal, closeModal) {
                 pinError.style.color = 'green';
                 pinError.style.opacity = 1;
 
-                // IMPORTANT : Bascule d'affichage vers le panneau d'administration après succès
                 setTimeout(() => {
                     pinScreen.style.display = 'none';
                     adminPanel.style.display = 'block';
                     pinError.style.opacity = 0; 
-                    // Initialiser le gestionnaire de carrousel après l'affichage du panneau
+                    
+                    document.querySelectorAll('.admin-tabs .tab-button').forEach(btn => {
+                        if (btn.getAttribute('data-tab') === 'carousel-manager') {
+                            btn.classList.add('active');
+                        } else {
+                            btn.classList.remove('active');
+                        }
+                    });
+                    document.querySelectorAll('.admin-panel .tab-content').forEach(content => {
+                        content.style.display = content.id === 'carousel-manager' ? 'block' : 'none';
+                    });
+                    
                     initCarouselManager(); 
-                }, 500); // Laisse 0.5s pour voir le message "Connexion réussie"
+                }, 500); 
 
             } else {
                 isAdminLoggedIn = false;
@@ -277,7 +387,6 @@ export function initAdmin(adminBtn, adminModal, closeModal) {
                 pinError.style.color = 'red';
                 pinError.style.opacity = 1;
                 
-                // Effacer tous les champs après un échec
                 setTimeout(() => {
                     pinInputs.forEach(input => input.value = '');
                     if (pinInputs.length > 0) {
@@ -286,7 +395,6 @@ export function initAdmin(adminBtn, adminModal, closeModal) {
                 }, 300);
             }
         } else {
-            // Masquer le message d'erreur si le code est incomplet
             pinError.style.opacity = 0;
         }
     }

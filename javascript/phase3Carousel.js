@@ -5,10 +5,10 @@ import { getAdminImages } from './adminManager.js';
 
 let imageCarousel = [];
 const carouselRadius = 5; 
-const imageFiles = [
-    'P1.jpeg', 'P2.jpeg', 'P3.jpeg', 'P4.jpeg', 
-    'P5.jpeg', 'P6.jpeg', 'P7.jpeg'
-];
+// MODIFICATION CRUCIALE: Le tableau est maintenant VIDE ou très réduit.
+// adminManager.js s'occupe de MIGRER ces noms de fichiers vers localStorage lors du premier lancement.
+// Après cette migration, phase3Carousel.js DOIT les récupérer via getAdminImages().
+export const imageFiles = []; 
 const textureLoader = new THREE.TextureLoader();
 
 const raycaster3 = new THREE.Raycaster();
@@ -55,46 +55,38 @@ const isMobile = /Android|webOS|iPhone|iPad|IEMobile|Opera Mini/i.test(navigator
 export function preloadCarouselTextures() {
     const promises = [];
     
-    // 1. Récupérer les images admin (Base64)
-    const adminImages = getAdminImages();
+    // 1. Récupérer TOUTES les images (Base + Admin) du Local Storage
+    const allImageSources = getAdminImages();
     
-    // 2. Déterminer toutes les sources à charger (fichiers + Base64)
-    const allImageSources = [...imageFiles]; // Fichiers de base
-    
-    adminImages.forEach((base64String, index) => {
-        // Clé unique pour les textures Base64
-        const adminKey = `admin_${index}`;
-        // Ajouter la clé à la liste, mais on chargera Base64 directement
-        allImageSources.push(adminKey); 
+    if (allImageSources.length === 0) {
+        console.warn("Aucune image de carrousel trouvée dans le Local Storage. Le carrousel ne sera pas affiché.");
+        texturesLoaded = true;
+        return Promise.resolve();
+    }
 
-        const promise = new Promise((resolve) => {
-            // Charger la texture à partir de l'URI Base64
-            textureLoader.load(base64String, (texture) => {
-                texture.colorSpace = THREE.SRGBColorSpace;
-                texture.minFilter = THREE.LinearFilter;
-                preloadedTextures[adminKey] = texture;
-                resolve();
-            });
-        });
-        promises.push(promise);
-    });
+    // 2. Précharger les images
+    allImageSources.forEach((source, index) => {
+        // La source est soit un nom de fichier (P1.jpeg) soit une chaîne Base64
+        const isBase64 = source.startsWith('data:image/');
+        const sourceKey = isBase64 ? `admin_dynamic_${index}` : source; // Clé d'accès unique
 
-    // Précharger les images de base (fichiers)
-    imageFiles.forEach(filename => {
+        const loaderSource = isBase64 ? source : `image_projets/${source}`;
+        
         const promise = new Promise((resolve, reject) => {
-            const path = `image_projets/${filename}`;
             textureLoader.load(
-                path,
+                loaderSource,
                 (texture) => {
                     texture.colorSpace = THREE.SRGBColorSpace;
                     texture.minFilter = THREE.LinearFilter;
-                    preloadedTextures[filename] = texture;
+                    preloadedTextures[sourceKey] = texture;
                     resolve();
                 },
                 undefined,
                 (error) => {
-                    console.error('Erreur préchargement texture carrousel:', filename, error);
-                    reject(error);
+                    console.error('Erreur préchargement texture carrousel:', sourceKey, error);
+                    // Remplacer la texture manquante par une couleur pour éviter le crash
+                    preloadedTextures[sourceKey] = new THREE.Texture();
+                    resolve(); 
                 }
             );
         });
@@ -116,7 +108,8 @@ export function preloadCarouselTextures() {
                 undefined,
                 (error) => {
                     console.error('Erreur préchargement texture bandeau:', filename, error);
-                    reject(error);
+                    bandPreloadedTextures[filename] = new THREE.Texture();
+                    resolve();
                 }
             );
         });
@@ -125,7 +118,7 @@ export function preloadCarouselTextures() {
     
     return Promise.all(promises).then(() => {
         texturesLoaded = true;
-        console.log('Toutes les textures Phase 3 sont chargées (y compris admin)');
+        console.log('Toutes les textures Phase 3 sont chargées (y compris celles du Local Storage).');
     });
 }
 
@@ -175,6 +168,15 @@ function createRepeatingImageBand(group, yPosition, scaleX) {
  * Initialise le carrousel et le bandeau d'images avec textures préchargées
  */
 export function initPhase3(phase3Group) {
+    // NOUVEAU: Utilise TOUTES les sources du Local Storage
+    const allImageSources = getAdminImages();
+    
+    // Vérification de sécurité: si aucune image n'est présente, on arrête l'initialisation du carrousel.
+    if (allImageSources.length === 0) {
+        console.log("initPhase3 arrêté car allImageSources est vide.");
+        return;
+    }
+    
     // Lumières Phase 3
     const spotLight3 = new THREE.SpotLight(0xffffff, 4.0); 
     spotLight3.position.set(0, 8, 5);
@@ -196,15 +198,14 @@ export function initPhase3(phase3Group) {
     const photoWidth = 2.2;
     const photoHeight = 3;
     
-    // NOUVEAU: Déterminer l'ensemble final des clés d'images (fichiers + Base64 admin)
-    const adminImages = getAdminImages();
-    const adminKeys = adminImages.map((_, index) => `admin_${index}`);
-    const allImageSources = [...imageFiles, ...adminKeys];
     
     // S'assurer que le carrousel est vide avant de le remplir (important si on réinitialisait)
     imageCarousel = []; 
 
-    allImageSources.forEach((sourceKey, index) => { // sourceKey peut être 'P1.jpeg' ou 'admin_0'
+    allImageSources.forEach((source, index) => { 
+        const isBase64 = source.startsWith('data:image/');
+        const sourceKey = isBase64 ? `admin_dynamic_${index}` : source; // Retrouver la clé de préchargement
+        
         const imagePlaneGroup = new THREE.Group(); 
         const photoGeo = new THREE.PlaneGeometry(photoWidth, photoHeight);
         
@@ -216,12 +217,13 @@ export function initPhase3(phase3Group) {
         });
         
         // Utiliser la texture préchargée
-        if (preloadedTextures[sourceKey]) {
+        if (preloadedTextures[sourceKey] && preloadedTextures[sourceKey].image) {
             photoMat.map = preloadedTextures[sourceKey];
             photoMat.needsUpdate = true;
         } else {
-            console.warn('Texture carrousel non trouvée pour la clé:', sourceKey, '. Affichage en couleur par défaut.');
-            photoMat.color.set(0xf0c4df);
+            // Utiliser une couleur par défaut si le chargement a échoué (y compris les fallbacks ci-dessus)
+            console.warn(`Texture réelle non disponible pour ${sourceKey}. Utilisation du fallback couleur.`);
+            photoMat.color.set(0xaaaaaa);
         }
         
         const photo = new THREE.Mesh(photoGeo, photoMat);
@@ -262,8 +264,6 @@ export function initPhase3(phase3Group) {
 // ==========================================================
 // GESTION DU SURVOL
 // ==========================================================
-// ... (Les fonctions updateMousePosition3D, checkHoveredImage, updateCarouselPhase3,
-// updateImageBandPhase3 et setPhase3Active restent inchangées) ...
 
 export function updateMousePosition3D(event, canvas) {
     if (!isPhase3Active) return;
@@ -316,6 +316,9 @@ export function updateCarouselPhase3(transitionProgress, camera) {
     
     const identityQuaternion = new THREE.Quaternion();
     
+    // Le nombre total d'images doit être récupéré ici aussi
+    const allImageSources = getAdminImages();
+    
     imageCarousel.forEach((imagePlaneGroup) => {
         const userData = imagePlaneGroup.userData;
         const photoMaterial = imagePlaneGroup.children[0].material; 
@@ -328,22 +331,21 @@ export function updateCarouselPhase3(transitionProgress, camera) {
         
         if (userData.isHovered) {
             
-            // MODIFICATION POUR MAXIMISER L'ÉCRAN SUR MOBILE
-            const D_DESKTOP = 6.0; // Distance de zoom pour desktop
-            const PADDING_FACTOR_DESKTOP = 0.90; 
+            // Paramètres de zoom ajustés pour Desktop et Mobile
+            const D_DESKTOP = 6.0; 
+            // MODIFICATION: Facteur de padding réduit de 0.90 à 0.75 pour Desktop (moins de zoom)
+            const PADDING_FACTOR_DESKTOP = 0.75; 
+            // MODIFICATION: Facteur de padding réduit de 0.95 à 0.85 pour Mobile (moins de zoom)
+            const PADDING_FACTOR_MOBILE = 0.85; 
 
-            // Règle de zoom spécifique au mobile
             let D_ZOOM = D_DESKTOP;
             let paddingFactor = PADDING_FACTOR_DESKTOP;
-            let targetZ = 4; // Position Z par défaut
+            let targetZ = 4; 
 
             if (isMobile) {
-                // Pour que la photo prenne presque tout l'écran, on la rapproche
-                // de la caméra (qui est elle-même très reculée sur mobile, Z=18 dans utils.js)
-                // Nous la rapprochons de Z=10 à Z=2
-                D_ZOOM = 8.0; // Augmenter la distance de calcul
-                paddingFactor = 0.95; // Moins de marge
-                targetZ = -0.5; // Rapproche la photo du plan Z=0 (plus proche de la caméra)
+                D_ZOOM = 8.0; 
+                paddingFactor = PADDING_FACTOR_MOBILE; // Nouveau facteur mobile
+                targetZ = -0.5; 
             }
             
             const currentFovRad = THREE.MathUtils.degToRad(camera.fov);
@@ -354,7 +356,8 @@ export function updateCarouselPhase3(transitionProgress, camera) {
             const H_base = userData.originalPhotoHeight; 
             
             const scaleFactorW = (W_visible * paddingFactor) / W_base;
-            const scaleFactorH = (H_visible * paddingFactor) / H_base;
+            // CORRECTION CRUCIALE: Utiliser H_visible pour calculer scaleFactorH
+            const scaleFactorH = (H_visible * paddingFactor) / H_base; 
 
             userData.targetScale = Math.min(scaleFactorW, scaleFactorH);
             
@@ -371,8 +374,12 @@ export function updateCarouselPhase3(transitionProgress, camera) {
                 
                 imagePlaneGroup.rotation.y = (1 - t) * Math.PI * 4; 
                 
-                const x_final = Math.cos(userData.baseAngle) * carouselRadius;
-                const z_final = Math.sin(userData.baseAngle) * carouselRadius;
+                // Le nombre total d'images est maintenant basé sur allImageSources.length
+                const totalImages = allImageSources.length;
+                const baseAngle = (userData.index / totalImages) * Math.PI * 2;
+                
+                const x_final = Math.cos(baseAngle) * carouselRadius;
+                const z_final = Math.sin(baseAngle) * carouselRadius;
                 
                 userData.homePosition.set(
                     x_final * t, 
@@ -383,8 +390,12 @@ export function updateCarouselPhase3(transitionProgress, camera) {
                 userData.targetPosition.copy(userData.homePosition);
                 
             } else {
+                // Si le nombre d'images a changé (suppression), on recalcule l'angle de base
+                const totalImages = allImageSources.length;
+                const baseAngle = (userData.index / totalImages) * Math.PI * 2;
+
                 if (!userData.rotationLocked) {
-                    userData.currentAngle = userData.baseAngle + carouselRotation;
+                    userData.currentAngle = baseAngle + carouselRotation;
                 }
                 
                 const x = Math.cos(userData.currentAngle) * carouselRadius;

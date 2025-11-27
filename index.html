@@ -17,8 +17,6 @@
     
     <link rel="stylesheet" href="style.css">
 
-    <!-- LE BLOC STYLE PRÉCÉDENT EST SUPPRIMÉ ICI -->
-
 </head>
 <body>
     <header id="header">
@@ -41,16 +39,29 @@
         <div class="scroll-indicator">SCROLL</div>
     </section>
 
+    <!-- Ces sections créent l'espace de défilement pour les phases 3D -->
     <section class="scroll-3d-animation-section" id="scroll3dSection"></section>
     
     <section class="carousel-scroll-section" id="carouselScrollSection"></section>
 
+    <!-- SECTION PRINCIPALE DE CONTENU QUI DOIT APPARAÎTRE NORMALEMENT -->
     <section class="projects-section">
         <div class="projects-intro" id="projectsIntro">
             <h2>Projets</h2>
             <p>Travaux réalisés à l'École Estienne, Paris</p>
         </div>
         <div class="gallery" id="gallery">
+            <!-- Ajout de contenu de remplissage pour forcer l'affichage de la section -->
+            <div class="project-card">
+                <h3>Projet Exemple 1</h3>
+                <p>Ceci est un espace réservé pour vérifier le défilement.</p>
+            </div>
+            <div class="project-card">
+                <h3>Projet Exemple 2</h3>
+                <p>Ce contenu doit être visible après le défilement 3D.</p>
+            </div>
+            <!-- Fin du contenu de remplissage -->
+            
             <div class="empty-state">Aucun projet pour le moment</div>
         </div>
     </section>
@@ -72,23 +83,23 @@
                 <div class="pin-error" id="pinError" style="opacity:0;"></div>
             </div>
             
-            <!-- CONTENEUR DU MENU MANAGER (Rendu plus ludique/interactif) -->
+            <!-- CONTENEUR DU MENU MANAGER (Minimaliste) -->
             <div class="admin-panel" id="adminPanel" style="display:none;">
                 <h2 class="admin-title">Panneau d'Administration</h2>
                 
                 <!-- NAVIGATION PAR ONGLET -->
                 <div class="admin-tabs">
-                    <button class="tab-button active" data-tab="dashboard">
+                    <button class="tab-button active" data-tab="dashboard" title="Statistiques rapides">
                         <i class="fas fa-rocket"></i> Dashboard
                     </button>
-                    <button class="tab-button" data-tab="carousel-manager">
-                        <i class="fas fa-camera-retro"></i> Gestion Carrousel
+                    <button class="tab-button" data-tab="carousel-manager" title="Gérer les images du carrousel 3D">
+                        <i class="fas fa-camera-retro"></i> Carrousel
                     </button>
-                    <button class="tab-button" data-tab="add-project">
-                        <i class="fas fa-plus-circle"></i> Ajouter Projet
+                    <button class="tab-button" data-tab="add-project" title="Ajouter/publier un projet dans la galerie">
+                        <i class="fas fa-plus-circle"></i> Projet
                     </button>
-                    <button class="tab-button" data-tab="settings">
-                        <i class="fas fa-cogs"></i> Réglages 3D
+                    <button class="tab-button" data-tab="settings" title="Ajuster les réglages 3D">
+                        <i class="fas fa-cogs"></i> Réglages
                     </button>
                 </div>
 
@@ -111,65 +122,62 @@
                     </div>
                 </div>
 
-                <!-- NOUVEL ONGLET : GESTION CARROUSEL -->
+                <!-- NOUVEL ONGLET MINIMALISTE : GESTION CARROUSEL -->
                 <div class="tab-content" id="carousel-manager" style="display:none;">
-                    <h3>Gestion des Images du Carrousel 3D</h3>
+                    <h3>Gestion des Images du Carrousel <i class="fas fa-info-circle info-icon" title="Les images de base sont maintenant modifiables car elles sont stockées localement."></i></h3>
                     <div id="carouselManager">
-                        <p style="margin-bottom: 15px;">
-                            <strong>Ajouter une image :</strong> Elle sera sauvegardée localement et ajoutée au carrousel au prochain chargement de la page.
-                        </p>
-                        <div class="form-group file-upload" style="border: 1px solid #ddd; padding: 15px; border-radius: 5px;">
-                            <label for="imageFileInput" class="file-label" style="background: #e9ecef; color: #333; cursor: pointer; padding: 8px 15px; border-radius: 4px; display: inline-block;">
-                                <i class="fas fa-cloud-upload-alt"></i> Choisir Fichier Image
+                        <!-- ÉLÉMENT D'UPLOAD MINIMALISTE -->
+                        <div class="form-group file-upload simple-upload-box">
+                            <label for="imageFileInput" class="file-label file-label-minimal">
+                                <i class="fas fa-plus-square"></i> Ajouter une Image (Max 15)
                             </label>
                             <!-- NOTE: L'ID ici est crucial et est utilisé dans adminManager.js -->
                             <input type="file" id="imageFileInput" accept="image/*" style="display: none;">
-                            <span id="fileNameDisplay" style="margin-left: 10px; font-style: italic; color: #555;">(Max 15 images admin)</span>
                         </div>
                         
-                        <hr style="margin-top: 25px; margin-bottom: 25px;">
+                        <hr class="minimal-hr">
                         
-                        <h4>Images Ajoutées par l'Administrateur</h4>
-                        <p style="font-size: 0.9em; color: #888; margin-bottom: 15px;">
-                            Les images ci-dessous sont stockées localement. Supprimez-les si vous ne voulez plus qu'elles apparaissent dans le carrousel.
-                        </p>
+                        <h4>Liste Complète des Images <i class="fas fa-list-alt info-icon" title="Toutes les images sont modifiables et supprimables."></i></h4>
                         <!-- NOTE: L'ID ici est crucial et est utilisé dans adminManager.js pour le rendu de la liste -->
-                        <ul id="adminImageList" style="list-style: none; padding: 0;">
+                        <ul id="adminImageList" class="minimal-list">
                             <!-- La liste d'images (avec aperçu et bouton supprimer) sera rendue ici par adminManager.js -->
                             <li>Chargement de la liste...</li>
                         </ul>
                     </div>
                 </div>
 
+                <!-- NOUVEL ONGLET MINIMALISTE : AJOUTER PROJET -->
                 <div class="tab-content" id="add-project" style="display:none;">
-                    <h3>Ajouter un Nouveau Projet</h3>
+                    <h3>Ajouter un Projet</h3>
                     <form class="admin-form" id="projectForm">
                         <div class="form-group">
                             <label for="projectTitle"><i class="fas fa-heading"></i> Titre</label>
-                            <input type="text" id="projectTitle" placeholder="Titre du projet" required>
+                            <input type="text" id="projectTitle" placeholder="Nom du projet" required>
                         </div>
                         <div class="form-group">
                             <label for="projectDesc"><i class="fas fa-align-left"></i> Description</label>
-                            <textarea id="projectDesc" placeholder="Description du projet" required></textarea>
+                            <textarea id="projectDesc" placeholder="Description courte (galerie)" required></textarea>
                         </div>
-                        <div class="form-group file-upload">
-                            <label for="projectImage" class="file-label"><i class="fas fa-cloud-upload-alt"></i> Choisir Image</label>
+                        <div class="form-group file-upload simple-upload-box">
+                            <label for="projectImage" class="file-label file-label-minimal">
+                                <i class="fas fa-image"></i> Image Principale du Projet
+                            </label>
                             <input type="file" id="projectImage" accept="image/*" required>
                         </div>
                         <img class="image-preview" id="imagePreview">
-                        <button type="submit" class="submit-btn"><i class="fas fa-paper-plane"></i> Publier le Projet</button>
+                        <button type="submit" class="submit-btn"><i class="fas fa-check-circle"></i> Publier</button>
                     </form>
                 </div>
 
                 <div class="tab-content" id="settings" style="display:none;">
                     <h3>Contrôles 3D</h3>
-                    <p>Réglages pour la vitesse du train ou la couleur de fond.</p>
+                    <p class="minimal-note">Ajustez la vitesse de défilement du tapis ou d'autres paramètres 3D.</p>
                     <div class="setting-group">
-                        <label for="trainSpeed">Vitesse du Train :</label>
+                        <label for="trainSpeed">Vitesse du Tapis :</label>
                         <input type="range" id="trainSpeed" min="0.001" max="0.1" step="0.001">
                         <span id="trainSpeedValue">0.001</span>
                     </div>
-                    <button class="reset-btn"><i class="fas fa-undo"></i> Réinitialiser le Train</button>
+                    <button class="reset-btn"><i class="fas fa-redo-alt"></i> Réinitialiser</button>
                 </div>
             </div>
         </div>
@@ -197,22 +205,13 @@
                     if (targetContent) {
                         targetContent.style.display = 'block';
                     }
-                    
-                    // Si l'onglet de gestion du carrousel est activé, mettez à jour l'affichage
-                    if (targetId === 'carousel-manager') {
-                        // Comme initCarouselManager est appelé dans adminManager.js, 
-                        // nous allons juste forcer le rafraîchissement si la logique est déjà chargée.
-                        // La logique de rafraîchissement est gérée par l'observateur dans adminManager.js 
-                        // lorsque le panneau devient visible.
-                    }
                 });
             });
             
             // Logique de prévisualisation d'image (pour l'onglet Ajouter Projet)
             const projectImageInput = document.getElementById('projectImage');
             const imagePreview = document.getElementById('imagePreview');
-            const imageFileInput = document.getElementById('imageFileInput');
-            const fileNameDisplay = document.getElementById('fileNameDisplay');
+            // Suppression de la logique fileNameDisplay pour le carrousel (minimalisme)
             
             if (projectImageInput && imagePreview) {
                 projectImageInput.addEventListener('change', function() {
@@ -227,17 +226,6 @@
                     } else {
                         imagePreview.src = '#';
                         imagePreview.style.display = 'none';
-                    }
-                });
-            }
-
-            // Affichage du nom de fichier pour la gestion du carrousel
-            if (imageFileInput && fileNameDisplay) {
-                imageFileInput.addEventListener('change', function() {
-                    if (this.files.length > 0) {
-                        fileNameDisplay.textContent = this.files[0].name;
-                    } else {
-                        fileNameDisplay.textContent = '(Max 15 images admin)';
                     }
                 });
             }
