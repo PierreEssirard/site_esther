@@ -124,6 +124,9 @@
                     <button class="tab-button" data-tab="color-manager">
                         <i class="fas fa-palette"></i> Couleurs
                     </button>
+                    <button class="tab-button" data-tab="typography-manager">
+                        <i class="fas fa-font"></i> Typographie
+                    </button>
                     <button class="tab-button" data-tab="add-project">
                         <i class="fas fa-plus-circle"></i> Projet
                     </button>
@@ -171,8 +174,33 @@
                 
                 <div class="tab-content" id="color-manager" style="display:none;">
                     <h3>🎨 Couleurs des Phases 3D</h3>
-                    <p class="minimal-note">Modifiez les couleurs de fond pour chaque phase de transition du site.</p>
+                    <p class="minimal-note">Modifiez les couleurs de fond, du pinceau et du texte principal.</p>
                     <div id="colorManager" style="padding: 10px; border: 1px solid #ddd; border-radius: 4px; background: #fcfcfc;">
+                    </div>
+                </div>
+
+                <div class="tab-content" id="typography-manager" style="display:none;">
+                    <h3>🔤 Gestion des Typographies</h3>
+                    <p class="minimal-note">Entrez le lien Google Fonts/Dafont `@import` et le nom CSS de la police pour changer le style.</p>
+                    <div id="typographyManager" style="padding: 10px; border: 1px solid #ddd; border-radius: 4px; background: #fcfcfc;">
+                        <h4 style="color: var(--color-primary); margin-bottom: 15px;">Nom Principal (Esther Marty)</h4>
+                        <div class="form-group">
+                            <label for="fontUrlName"><i class="fas fa-link"></i> URL de la Police (@import)</label>
+                            <textarea id="fontUrlName" placeholder="Ex: @import url('https://fonts.googleapis.com/css2?family=Roboto+Mono&display=swap');" rows="3"></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label for="fontFamilyName"><i class="fas fa-font"></i> Nom CSS (font-family)</label>
+                            <input type="text" id="fontFamilyName" placeholder="Ex: 'Roboto Mono', monospace">
+                        </div>
+
+                        <button id="saveTypographyBtn" style="background: var(--color-primary); color: white; padding: 10px 15px; border: none; border-radius: 4px; cursor: pointer; margin-top: 15px;">
+                            Sauvegarder les Typographies
+                        </button>
+                        <button id="resetTypographyBtn" style="background: #999; color: white; padding: 10px 15px; border: none; border-radius: 4px; cursor: pointer; margin-left: 10px;">
+                            Réinitialiser
+                        </button>
+                        
+                        <div id="fontError" style="color: red; margin-top: 10px;"></div>
                     </div>
                 </div>
 

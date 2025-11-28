@@ -17,7 +17,8 @@ import {
 import { 
     initAdmin, getAdminStatus, setUpdateCallback, 
     initializeCarouselListener, // NOUVEAU: Écouteur Firebase pour les images
-    getPhaseColors, setUpdateColorCallback 
+    getPhaseColors, setUpdateColorCallback, 
+    getCustomTypography, setUpdateTypographyCallback // NOUVEAU: Typographie
 } from './adminManager.js'; 
 
 // ==========================================================
@@ -26,6 +27,7 @@ import {
 
 // Cache local pour les données dynamiques
 let phaseColors = {}; // Rempli par getPhaseColors
+let customTypography = {}; // Rempli par getCustomTypography // NOUVEAU
 let carouselImageSources = []; // Rempli par initializeCarouselListener
 let isAppReady = false;
 
@@ -161,10 +163,46 @@ function updateSceneColors() {
     // Récupère les dernières couleurs de Firebase
     getPhaseColors().then(latestColors => {
         phaseColors = latestColors; // Met à jour l'objet global
-        scene.background.set(phaseColors.COLOR_PHASE1);
-        console.log('Couleurs de phase mises à jour en temps réel.');
+        // Le changement de couleur du fond se fait dans la boucle d'animation
+        // pour que la transition reste douce.
+        console.log('Couleurs de phase mises à jour en temps réel (prendra effet dans la prochaine transition).');
+        
+        // MAJ: Forcer un rechargement pour que la couleur du pinceau soit prise en compte
+        // car initPhase2 n'est pas réexécuté.
+        showUpdateMessage(); 
+
     }).catch(e => {
         console.error('Erreur lors de la mise à jour des couleurs:', e);
+    });
+}
+
+// NOUVEAU: Fonction pour mettre à jour la typographie en temps réel (ASYNCHRONE)
+function updateSceneTypography(newTypography) {
+    // Récupère les dernières polices de Firebase ou utilise la nouvelle passée
+    const updatePromise = newTypography 
+        ? Promise.resolve(newTypography) 
+        : getCustomTypography();
+        
+    updatePromise.then(latestTypography => {
+        customTypography = latestTypography; // Met à jour l'objet global
+        
+        const styleElementId = 'custom-font-style';
+        let styleElement = document.getElementById(styleElementId);
+        
+        if (!styleElement) {
+            styleElement = document.createElement('style');
+            styleElement.id = styleElementId;
+            document.head.appendChild(styleElement);
+        }
+
+        // Applique l'import et le style CSS pour le nom (H1)
+        styleElement.textContent = `
+            ${customTypography.fontUrlName || ''}
+            .hero-content h1 { font-family: ${customTypography.fontFamilyName}; }
+        `;
+        console.log('Typographie de phase mise à jour en temps réel.');
+    }).catch(e => {
+        console.error('Erreur lors de la mise à jour des typographies:', e);
     });
 }
 
@@ -172,8 +210,8 @@ function updateSceneColors() {
 async function initializeApp() {
     try {
         let completedTasks = 0;
-        // Total tasks: 1 (Model), 2 (Cube), 3 (Colors), 4 (Carousel Textures)
-        const totalTasks = 4;
+        // Total tasks: 1 (Model), 2 (Cube), 3 (Colors), 4 (Typography), 5 (Carousel Textures)
+        const totalTasks = 5;
         
         // Fonction pour mettre à jour la progression
         const updateLoadingProgress = () => {
@@ -193,7 +231,7 @@ async function initializeApp() {
             console.log('✓ Textures du cube chargées');
         });
         
-        // 2. Charger les données dynamiques initiales de Firebase
+        // 2. Charger les données dynamiques initiales de Firebase (Couleurs + Typographie)
         const colorPromise = getPhaseColors().then(colors => {
             phaseColors = colors;
             scene.background = new THREE.Color(phaseColors.COLOR_PHASE1);
@@ -201,8 +239,14 @@ async function initializeApp() {
             console.log('✓ Couleurs de phase chargées.');
         });
         
+        const typographyPromise = getCustomTypography().then(typography => { // NOUVEAU
+            customTypography = typography;
+            updateLoadingProgress();
+            console.log('✓ Typographie personnalisée chargée.');
+        });
+        
         // Attendre le chargement des données non images
-        await Promise.all([modelPromise, cubePromise, colorPromise]);
+        await Promise.all([modelPromise, cubePromise, colorPromise, typographyPromise]); // MODIFIÉ
         
         // 3. Initialiser l'écouteur de carrousel Firebase
         // NOTE: L'écouteur remplit `carouselImageSources` et déclenche `showUpdateMessage`
@@ -237,13 +281,18 @@ async function initializeApp() {
         
         // 6. Initialiser les phases avec les données
         initPhase1(phase1Group);
-        initPhase2(phase2Group);
+        // initPhase2 est maintenant async et attend les couleurs du pinceau,
+        // mais comme les couleurs sont déjà dans `phaseColors`, on peut le lancer.
+        initPhase2(phase2Group); 
         phase2Group.position.y = MOBILE_TEXT_Y_POS;
         // Passe la liste d'images récupérée à la Phase 3
         initPhase3(phase3Group, carouselImageSources); 
         
         // Configuration initiale
         setRendererToCanvasSize(renderer, camera); 
+        
+        // Appliquer la typographie chargée initialement
+        updateSceneTypography(customTypography); // NOUVEAU
         adjustCameraForScreen(camera, phase1Group);
         
         // Marquer l'application comme prête
@@ -282,6 +331,7 @@ if (heroContent) {
 // NOUVEAU: Connecter la fonction de rechargement à l'Admin Manager
 setUpdateCallback(showUpdateMessage);
 setUpdateColorCallback(updateSceneColors); // NOUVEAU: Connecter la fonction de mise à jour des couleurs
+setUpdateTypographyCallback(updateSceneTypography); // NOUVEAU: Connecter la fonction de mise à jour des typos
 
 
 window.addEventListener('resize', () => { 

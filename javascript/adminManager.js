@@ -1,4 +1,4 @@
-// javascript/adminManager.js - VERSION CORRIGÉE AVEC TIMEOUTS
+// javascript/adminManager.js - VERSION CORRIGÉE AVEC TIMEOUTS ET TYPOGRAPHIE
 
 import { imageFiles } from './phase3Carousel.js'; 
 
@@ -9,20 +9,36 @@ const db = window.db;
 let cachedAdminImages = [];
 
 const DEFAULT_COLORS = {
+    // Couleurs de phase de fond
     COLOR_PHASE1: '#c92e2e',
     COLOR_PHASE2: '#c84508',
     COLOR_PHASE3: '#f57e43',
+    // Couleurs du Pinceau 3D
+    COLOR_BRUSH_HANDLE: '#333333',     // Manche (CylinderGeometry)
+    COLOR_BRUSH_BRISTLES: '#f0c4df',   // Mine/Poils (ConeGeometry)
+    // Couleur du texte de tracé (Phase 2)
+    COLOR_PHASE2_TEXT: '#c84508',
+    // NOUVEAU: Couleurs du texte d'introduction (Hero)
+    COLOR_HERO_NAME: '#1a1a1a',        // Esther Marty
+    COLOR_HERO_TITLE: '#777777',       // Graphisme & Design
+};
+
+const DEFAULT_TYPOGRAPHY = {
+    fontUrlName: '',
+    fontFamilyName: 'Playfair Display, serif', // Police de secours
 };
 
 const DB_CAROUSEL_KEY = 'carouselImages';
 const DB_COLOR_KEY = 'phaseColors';
 const DB_INITIALIZED_KEY = 'baseInitialized';
+const DB_TYPOGRAPHY_KEY = 'customTypography'; // NOUVEAU
 
 // NOUVEAU : Timeout pour éviter le blocage
 const FIREBASE_TIMEOUT = 5000; // 5 secondes
 
 let updateCallback = () => {};
 let updateColorCallback = () => {}; 
+let updateTypographyCallback = () => {}; // NOUVEAU
 
 // ==========================================================
 // UTILITAIRE : Promesse avec timeout
@@ -272,11 +288,30 @@ export async function getPhaseColors() {
         );
         
         const storedColors = snapshot ? snapshot.val() : null;
+        // On fusionne les couleurs stockées avec les couleurs par défaut
         return storedColors ? { ...DEFAULT_COLORS, ...storedColors } : DEFAULT_COLORS;
     } catch (e) {
         console.error("Erreur lecture couleurs:", e);
         return DEFAULT_COLORS;
     }
+}
+
+// Fonction pour obtenir uniquement les couleurs du pinceau et du tracé (exportée pour phase2Brush.js)
+export async function getBrushColors() {
+    const colors = await getPhaseColors();
+    return {
+        brushHandle: colors.COLOR_BRUSH_HANDLE,
+        brushBristles: colors.COLOR_BRUSH_BRISTLES,
+        // Utiliser la nouvelle couleur dédiée pour le tracé
+        brushStroke: colors.COLOR_PHASE2_TEXT, 
+    };
+}
+
+// NOUVEAU: Fonction pour appliquer les couleurs du texte Hero au CSS
+function applyHeroTextColors(colors) {
+    const root = document.documentElement;
+    root.style.setProperty('--color-hero-name', colors.COLOR_HERO_NAME);
+    root.style.setProperty('--color-hero-title', colors.COLOR_HERO_TITLE);
 }
 
 function savePhaseColors(colors) {
@@ -288,6 +323,9 @@ function savePhaseColors(colors) {
     db.ref(DB_COLOR_KEY).set(colors)
         .then(() => {
             console.log("[Firebase] Couleurs sauvegardées");
+            // Appliquer immédiatement les couleurs Hero au CSS
+            applyHeroTextColors(colors);
+            // Déclencher le callback pour la scène 3D (qui recharge la page si nécessaire)
             updateColorCallback();
         })
         .catch(e => console.error("[Firebase] Erreur couleurs:", e));
@@ -298,19 +336,54 @@ function initColorManager() {
     if (!colorManagerDiv) return;
     
     getPhaseColors().then(currentColors => { 
+        // Appliquer les couleurs Hero chargées initialement
+        applyHeroTextColors(currentColors);
+        
         colorManagerDiv.innerHTML = `
-            <div style="margin-bottom: 15px;">
-                <label for="colorPhase1" style="display: block; margin-bottom: 5px; font-weight: bold;">Phase 1</label>
-                <input type="color" id="colorPhase1" value="${currentColors.COLOR_PHASE1}" style="width: 100%; height: 40px; border: 1px solid #ccc; border-radius: 4px;">
+            <div style="margin-bottom: 20px;">
+                <h4 style="color: var(--color-secondary); margin-bottom: 10px;">Couleurs de Fond (Phases)</h4>
+                <div style="margin-bottom: 15px;">
+                    <label for="colorPhase1" style="display: block; margin-bottom: 5px; font-weight: bold;">Phase 1 (Fond)</label>
+                    <input type="color" id="colorPhase1" value="${currentColors.COLOR_PHASE1}" style="width: 100%; height: 40px; border: 1px solid #ccc; border-radius: 4px;">
+                </div>
+                <div style="margin-bottom: 15px;">
+                    <label for="colorPhase2" style="display: block; margin-bottom: 5px; font-weight: bold;">Phase 2 (Fond)</label>
+                    <input type="color" id="colorPhase2" value="${currentColors.COLOR_PHASE2}" style="width: 100%; height: 40px; border: 1px solid #ccc; border-radius: 4px;">
+                </div>
+                <div style="margin-bottom: 15px;">
+                    <label for="colorPhase3" style="display: block; margin-bottom: 5px; font-weight: bold;">Phase 3 (Fond)</label>
+                    <input type="color" id="colorPhase3" value="${currentColors.COLOR_PHASE3}" style="width: 100%; height: 40px; border: 1px solid #ccc; border-radius: 4px;">
+                </div>
             </div>
-            <div style="margin-bottom: 15px;">
-                <label for="colorPhase2" style="display: block; margin-bottom: 5px; font-weight: bold;">Phase 2</label>
-                <input type="color" id="colorPhase2" value="${currentColors.COLOR_PHASE2}" style="width: 100%; height: 40px; border: 1px solid #ccc; border-radius: 4px;">
+            
+            <div style="margin-bottom: 20px;">
+                <h4 style="color: var(--color-secondary); margin-bottom: 10px;">Couleurs du Texte Introductif (Hero)</h4>
+                <div style="margin-bottom: 15px;">
+                    <label for="colorHeroName" style="display: block; margin-bottom: 5px; font-weight: bold;">Nom ("Esther Marty")</label>
+                    <input type="color" id="colorHeroName" value="${currentColors.COLOR_HERO_NAME}" style="width: 100%; height: 40px; border: 1px solid #ccc; border-radius: 4px;">
+                </div>
+                <div style="margin-bottom: 15px;">
+                    <label for="colorHeroTitle" style="display: block; margin-bottom: 5px; font-weight: bold;">Titre ("Graphisme & Design")</label>
+                    <input type="color" id="colorHeroTitle" value="${currentColors.COLOR_HERO_TITLE}" style="width: 100%; height: 40px; border: 1px solid #ccc; border-radius: 4px;">
+                </div>
             </div>
-            <div style="margin-bottom: 15px;">
-                <label for="colorPhase3" style="display: block; margin-bottom: 5px; font-weight: bold;">Phase 3</label>
-                <input type="color" id="colorPhase3" value="${currentColors.COLOR_PHASE3}" style="width: 100%; height: 40px; border: 1px solid #ccc; border-radius: 4px;">
+            
+            <div style="margin-bottom: 20px;">
+                <h4 style="color: var(--color-secondary); margin-bottom: 10px;">Couleurs de la Phase 2 (Pinceau/Tracé)</h4>
+                <div style="margin-bottom: 15px;">
+                    <label for="colorBrushHandle" style="display: block; margin-bottom: 5px; font-weight: bold;">Manche (Bois)</label>
+                    <input type="color" id="colorBrushHandle" value="${currentColors.COLOR_BRUSH_HANDLE}" style="width: 100%; height: 40px; border: 1px solid #ccc; border-radius: 4px;">
+                </div>
+                <div style="margin-bottom: 15px;">
+                    <label for="colorBrushBristles" style="display: block; margin-bottom: 5px; font-weight: bold;">Mine (Poils)</label>
+                    <input type="color" id="colorBrushBristles" value="${currentColors.COLOR_BRUSH_BRISTLES}" style="width: 100%; height: 40px; border: 1px solid #ccc; border-radius: 4px;">
+                </div>
+                <div style="margin-bottom: 15px;">
+                    <label for="colorPhase2Text" style="display: block; margin-bottom: 5px; font-weight: bold;">Couleur du Tracé ("Mes dessins")</label>
+                    <input type="color" id="colorPhase2Text" value="${currentColors.COLOR_PHASE2_TEXT}" style="width: 100%; height: 40px; border: 1px solid #ccc; border-radius: 4px;">
+                </div>
             </div>
+
             <button id="saveColorsBtn" style="background: var(--color-primary); color: white; padding: 10px 15px; border: none; border-radius: 4px; cursor: pointer;">
                 Sauvegarder
             </button>
@@ -327,6 +400,11 @@ function initColorManager() {
                 COLOR_PHASE1: document.getElementById('colorPhase1').value,
                 COLOR_PHASE2: document.getElementById('colorPhase2').value,
                 COLOR_PHASE3: document.getElementById('colorPhase3').value,
+                COLOR_BRUSH_HANDLE: document.getElementById('colorBrushHandle').value,
+                COLOR_BRUSH_BRISTLES: document.getElementById('colorBrushBristles').value,
+                COLOR_PHASE2_TEXT: document.getElementById('colorPhase2Text').value,
+                COLOR_HERO_NAME: document.getElementById('colorHeroName').value,
+                COLOR_HERO_TITLE: document.getElementById('colorHeroTitle').value,
             };
             savePhaseColors(newColors);
         };
@@ -336,9 +414,97 @@ function initColorManager() {
             document.getElementById('colorPhase1').value = DEFAULT_COLORS.COLOR_PHASE1;
             document.getElementById('colorPhase2').value = DEFAULT_COLORS.COLOR_PHASE2;
             document.getElementById('colorPhase3').value = DEFAULT_COLORS.COLOR_PHASE3;
+            document.getElementById('colorBrushHandle').value = DEFAULT_COLORS.COLOR_BRUSH_HANDLE;
+            document.getElementById('colorBrushBristles').value = DEFAULT_COLORS.COLOR_BRUSH_BRISTLES;
+            document.getElementById('colorPhase2Text').value = DEFAULT_COLORS.COLOR_PHASE2_TEXT;
+            document.getElementById('colorHeroName').value = DEFAULT_COLORS.COLOR_HERO_NAME;
+            document.getElementById('colorHeroTitle').value = DEFAULT_COLORS.COLOR_HERO_TITLE;
         };
     });
 }
+
+// ==========================================================
+// GESTION TYPOGRAPHIE AVEC TIMEOUTS (NOUVEAU)
+// ==========================================================
+
+export async function getCustomTypography() {
+    if (!db) {
+        console.warn('Firebase non disponible, typographie par défaut');
+        return DEFAULT_TYPOGRAPHY;
+    }
+    
+    try {
+        const snapshot = await promiseWithTimeout(
+            db.ref(DB_TYPOGRAPHY_KEY).once('value'),
+            FIREBASE_TIMEOUT,
+            { val: () => null }
+        );
+        
+        const storedFonts = snapshot ? snapshot.val() : null;
+        return storedFonts ? { ...DEFAULT_TYPOGRAPHY, ...storedFonts } : DEFAULT_TYPOGRAPHY;
+    } catch (e) {
+        console.error("Erreur lecture typographie:", e);
+        return DEFAULT_TYPOGRAPHY;
+    }
+}
+
+function saveCustomTypography(typography) {
+    if (!db) {
+        console.warn('Firebase non disponible, sauvegarde impossible');
+        return;
+    }
+    
+    db.ref(DB_TYPOGRAPHY_KEY).set(typography)
+        .then(() => {
+            console.log("[Firebase] Typographie sauvegardée");
+            updateTypographyCallback(typography); // Appelle le callback avec les nouvelles données
+        })
+        .catch(e => console.error("[Firebase] Erreur typographie:", e));
+}
+
+function initTypographyManager() {
+    const typographyManagerDiv = document.getElementById('typographyManager');
+    const fontError = document.getElementById('fontError');
+    if (!typographyManagerDiv) return;
+    
+    getCustomTypography().then(currentFonts => { 
+        document.getElementById('fontUrlName').value = currentFonts.fontUrlName || '';
+        document.getElementById('fontFamilyName').value = currentFonts.fontFamilyName || DEFAULT_TYPOGRAPHY.fontFamilyName;
+
+        const saveBtn = document.getElementById('saveTypographyBtn');
+        const resetBtn = document.getElementById('resetTypographyBtn');
+        
+        saveBtn.onclick = () => {
+            const newFonts = {
+                fontUrlName: document.getElementById('fontUrlName').value.trim(),
+                fontFamilyName: document.getElementById('fontFamilyName').value.trim(),
+            };
+            
+            if (!newFonts.fontFamilyName) {
+                 fontError.textContent = 'Le nom CSS est requis.';
+                 return;
+            }
+            
+            fontError.textContent = '';
+            saveCustomTypography(newFonts);
+        };
+        
+        resetBtn.onclick = () => {
+            const defaultFonts = { 
+                fontUrlName: '',
+                fontFamilyName: DEFAULT_TYPOGRAPHY.fontFamilyName,
+            };
+            
+            saveCustomTypography(defaultFonts);
+            
+            document.getElementById('fontUrlName').value = '';
+            document.getElementById('fontFamilyName').value = DEFAULT_TYPOGRAPHY.fontFamilyName;
+            
+            fontError.textContent = '';
+        };
+    });
+}
+
 
 // ==========================================================
 // LISTENER FIREBASE AVEC TIMEOUT
@@ -396,6 +562,12 @@ export function setUpdateColorCallback(callback) {
     }
 }
 
+export function setUpdateTypographyCallback(callback) { // NOUVEAU
+    if (typeof callback === 'function') {
+        updateTypographyCallback = callback;
+    }
+}
+
 export function getAdminStatus() {
     return isAdminLoggedIn;
 }
@@ -436,6 +608,7 @@ export function initAdmin(adminBtn, adminModal, closeModal) {
             
             initCarouselManager();
             initColorManager();
+            initTypographyManager(); // NOUVEAU
 
             const defaultTab = 'carousel-manager';
             document.querySelectorAll('.admin-tabs .tab-button').forEach(btn => {
@@ -506,6 +679,7 @@ export function initAdmin(adminBtn, adminModal, closeModal) {
                     
                     initCarouselManager();
                     initColorManager();
+                    initTypographyManager(); // NOUVEAU
                 }, 500);
 
             } else {

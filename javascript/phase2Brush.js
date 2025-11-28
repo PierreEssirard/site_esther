@@ -1,36 +1,62 @@
 // javascript/phase2Brush.js
 
+import { getBrushColors } from './adminManager.js'; // NOUVEAU: Import pour les couleurs dynamiques
+
 let paintBrush = null;
 let brushPath = null;
 let strokes = [];
 const brushState = { position: new THREE.Vector3(-10, 0, 0) };
 
+let currentBrushColors = {
+    brushHandle: 0x333333,
+    brushBristles: 0xf0c4df,
+    brushStroke: 0xc84508 // Couleur du tracé (par défaut à la couleur Phase 2)
+};
+
 /**
  * Crée l'objet 3D du pinceau.
+ * @param {Object} colors - Couleurs dynamiques du pinceau.
  */
-function createPaintbrush() {
+function createPaintbrush(colors) {
     const brushGroup = new THREE.Group();
+    
+    // 1. Manche/Handle
     const handle = new THREE.Mesh(
         new THREE.CylinderGeometry(0.06, 0.08, 2.2, 16), 
-        new THREE.MeshStandardMaterial({ color: 0x333333, roughness: 0.5 })
+        new THREE.MeshStandardMaterial({ 
+            color: colors.brushHandle, 
+            roughness: 0.5 
+        })
     );
     handle.position.y = 1.1; 
     brushGroup.add(handle);
     
+    // 2. Vilebrequin/Ferrule (Métal) - Conserve la couleur fixe dorée
     const ferrule = new THREE.Mesh(
         new THREE.CylinderGeometry(0.08, 0.06, 0.4, 16), 
-        new THREE.MeshStandardMaterial({ color: 0xd4af37, metalness: 0.8, roughness: 0.2 })
+        new THREE.MeshStandardMaterial({ 
+            color: 0xd4af37, // Couleur métal fixe
+            metalness: 0.8, 
+            roughness: 0.2 
+        })
     );
     ferrule.position.y = 0.0; 
     brushGroup.add(ferrule);
     
+    // 3. Mine/Bristles
     const bristles = new THREE.Mesh(
         new THREE.ConeGeometry(0.06, 0.5, 16), 
-        new THREE.MeshStandardMaterial({ color: 0xf0c4df })
+        new THREE.MeshStandardMaterial({ 
+            color: colors.brushBristles, // Couleur dynamique
+            side: THREE.DoubleSide
+        })
     );
     bristles.position.y = -0.45; 
     bristles.rotation.x = Math.PI; 
     brushGroup.add(bristles);
+    
+    // Règle la visibilité initiale à false
+    brushGroup.visible = false;
     
     brushGroup.rotation.x = -Math.PI / 4; 
     return brushGroup;
@@ -40,10 +66,19 @@ function createPaintbrush() {
  * Initialise le pinceau et charge le texte "Mes dessins" en courbes 3D.
  * @param {THREE.Group} phase2Group
  */
-export function initPhase2(phase2Group) {
-    paintBrush = createPaintbrush();
+export async function initPhase2(phase2Group) {
+    // Étape 1: Charger les couleurs dynamiques du pinceau
+    try {
+        currentBrushColors = await getBrushColors();
+    } catch (e) {
+        console.error("Erreur chargement couleurs pinceau, utilisation des couleurs par défaut.", e);
+    }
+
+    // Étape 2: Créer le pinceau avec les couleurs
+    paintBrush = createPaintbrush(currentBrushColors);
     phase2Group.add(paintBrush);
 
+    // Étape 3: Créer les tracés de texte
     const fontLoader = new THREE.FontLoader();
     fontLoader.load('https://threejs.org/examples/fonts/gentilis_bold.typeface.json', function (font) {
         // MODIFICATION: Réduction de la taille du texte de 2.0 à 1.5 pour l'effet "beaucoup trop grand" sur mobile.
@@ -64,9 +99,9 @@ export function initPhase2(phase2Group) {
         let currentLength = 0;
         
         const paintMat = new THREE.MeshBasicMaterial({ 
-            color: 0xf0c4df,
+            color: currentBrushColors.brushStroke, // COULEUR DYNAMIQUE DU TRACÉ DE TEXTE
             transparent: true, 
-            opacity: 1,
+            opacity: 0, // Opacité initiale à 0 pour tous les tracés
             side: THREE.DoubleSide
         });
 
@@ -127,9 +162,18 @@ export function initPhase2(phase2Group) {
  * @param {THREE.PointLight} light2 - Lumière à suivre
  */
 export function updatePhase2(scrollProgress, phase2to3Transition, light2) {
-    if (brushPath && strokes.length > 0) {
+    if (paintBrush && brushPath && strokes.length > 0) {
         const p = scrollProgress;
         
+        // NOUVEAU: Facteur d'apparition progressif
+        // Le pinceau apparaît sur les 5 premiers pourcents (0.0 à 0.05) du scroll de la section.
+        // On s'assure qu'il est visible avant de commencer le tracé.
+        const appearanceFactor = Math.min(1, p / 0.05); 
+        
+        // La visibilité est basée sur l'apparition (si le scroll a commencé)
+        paintBrush.visible = appearanceFactor > 0.001; 
+        paintBrush.parent.visible = true; // S'assurer que le groupe parent est visible
+
         // 1. Position du Pinceau
         const targetPos = brushPath.getPointAt(p);
         const brushOffset = new THREE.Vector3(0, 0.4, 0.4); 
@@ -156,9 +200,26 @@ export function updatePhase2(scrollProgress, phase2to3Transition, light2) {
         // 3. Lumière
         light2.position.copy(brushState.position); 
         light2.position.z += 1;
+        
+        // 4. Contrôle de l'opacité (Apparition * Transition Phase 3)
+        const finalOpacity = appearanceFactor * (1 - phase2to3Transition);
+        
+        // Appliquer l'opacité au pinceau
+        paintBrush.traverse(o => {
+            if (o.material) {
+                o.material.transparent = true;
+                o.material.opacity = finalOpacity;
+            }
+        });
+
+        // Appliquer l'opacité aux tracés (strokes)
+        strokes.forEach(s => { 
+            s.mesh.material.transparent = true;
+            s.mesh.material.opacity = finalOpacity; 
+        });
     }
     
-    // 4. Effet vortex de transition vers Phase 3
+    // 5. Effet vortex de transition vers Phase 3
     if (phase2to3Transition > 0) {
         const t = Math.min(1, phase2to3Transition);
         
@@ -167,28 +228,23 @@ export function updatePhase2(scrollProgress, phase2to3Transition, light2) {
         paintBrush.parent.scale.setScalar(1 - t);       
         paintBrush.parent.position.z = t * 5;           
         
-        // Contrôle de l'opacité
-        const phase2Opacity = 1 - t;
-        
-        paintBrush.traverse(o => {
-            if (o.material) {
-                o.material.transparent = true;
-                o.material.opacity = phase2Opacity;
-            }
-        });
-        strokes.forEach(s => { s.mesh.material.opacity = phase2Opacity; });
+        // L'opacité est déjà gérée par le calcul `finalOpacity` ci-dessus
         
         if (t >= 1) {
-            if (paintBrush) paintBrush.visible = false;
+            // Désactiver le groupe entier une fois la transition terminée
             paintBrush.parent.visible = false;
         }
 
     } else {
         // État normal
-        paintBrush.parent.rotation.y = 0;
-        paintBrush.parent.scale.setScalar(1);
-        paintBrush.parent.position.z = 0;
-        if (paintBrush) paintBrush.visible = true;
-        strokes.forEach(s => { s.mesh.material.opacity = 1; });
+        if (paintBrush) { // Vérification de sécurité
+            paintBrush.parent.rotation.y = 0;
+            paintBrush.parent.scale.setScalar(1);
+            paintBrush.parent.position.z = 0;
+            
+            // Le parent reste visible s'il n'y a pas de transition Phase 3
+            paintBrush.parent.visible = true;
+            // La visibilité du pinceau et l'opacité sont gérées par `appearanceFactor`
+        }
     }
 }
